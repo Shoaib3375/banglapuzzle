@@ -16,7 +16,9 @@ class ProductCrudTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private Category $category;
+
     private Subcategory $subcategory;
 
     protected function setUp(): void
@@ -32,7 +34,7 @@ class ProductCrudTest extends TestCase
         $this->category = Category::factory()->create(['is_active' => true]);
         $this->subcategory = Subcategory::factory()->create([
             'category_id' => $this->category->id,
-            'is_active'   => true,
+            'is_active' => true,
         ]);
     }
 
@@ -77,14 +79,14 @@ class ProductCrudTest extends TestCase
 
         $response = $this->actingAs($this->admin)
             ->post(route('admin.products.store'), [
-                'category_id'    => $this->category->id,
+                'category_id' => $this->category->id,
                 'subcategory_id' => $this->subcategory->id,
-                'name'           => 'Test Product',
-                'description'    => 'A test product description that is detailed enough.',
-                'image'          => $image,
-                'old_price'      => '500.00',
-                'new_price'      => '399.00',
-                'is_active'      => '1',
+                'name' => 'Test Product',
+                'description' => 'A test product description that is detailed enough.',
+                'image' => $image,
+                'old_price' => '500.00',
+                'new_price' => '399.00',
+                'is_active' => '1',
             ]);
 
         $response->assertRedirect(route('admin.products.index'));
@@ -105,14 +107,14 @@ class ProductCrudTest extends TestCase
 
         $response = $this->actingAs($this->admin)
             ->post(route('admin.products.store'), [
-                'category_id'    => $this->category->id,
+                'category_id' => $this->category->id,
                 'subcategory_id' => $this->subcategory->id,
-                'name'           => 'Overpriced Product',
-                'description'    => 'Description here.',
-                'image'          => $image,
-                'old_price'      => '200.00',
-                'new_price'      => '300.00', // > old_price
-                'is_active'      => '1',
+                'name' => 'Overpriced Product',
+                'description' => 'Description here.',
+                'image' => $image,
+                'old_price' => '200.00',
+                'new_price' => '300.00', // > old_price
+                'is_active' => '1',
             ]);
 
         $response->assertSessionHasErrors('new_price');
@@ -129,14 +131,14 @@ class ProductCrudTest extends TestCase
 
         $response = $this->actingAs($this->admin)
             ->post(route('admin.products.store'), [
-                'category_id'    => $otherCategory->id,        // different category
+                'category_id' => $otherCategory->id,        // different category
                 'subcategory_id' => $this->subcategory->id,    // belongs to $this->category
-                'name'           => 'Wrong Category Product',
-                'description'    => 'Description here.',
-                'image'          => $image,
-                'old_price'      => '200.00',
-                'new_price'      => '150.00',
-                'is_active'      => '1',
+                'name' => 'Wrong Category Product',
+                'description' => 'Description here.',
+                'image' => $image,
+                'old_price' => '200.00',
+                'new_price' => '150.00',
+                'is_active' => '1',
             ]);
 
         $response->assertSessionHasErrors('subcategory_id');
@@ -147,13 +149,13 @@ class ProductCrudTest extends TestCase
     {
         $response = $this->actingAs($this->admin)
             ->post(route('admin.products.store'), [
-                'category_id'    => $this->category->id,
+                'category_id' => $this->category->id,
                 'subcategory_id' => $this->subcategory->id,
-                'name'           => 'No Image Product',
-                'description'    => 'Description here.',
-                'old_price'      => '200.00',
-                'new_price'      => '150.00',
-                'is_active'      => '1',
+                'name' => 'No Image Product',
+                'description' => 'Description here.',
+                'old_price' => '200.00',
+                'new_price' => '150.00',
+                'is_active' => '1',
                 // no image field
             ]);
 
@@ -191,13 +193,13 @@ class ProductCrudTest extends TestCase
 
         $response = $this->actingAs($this->admin)
             ->put(route('admin.products.update', $product), [
-                'category_id'    => $this->category->id,
+                'category_id' => $this->category->id,
                 'subcategory_id' => $this->subcategory->id,
-                'name'           => 'Updated Product Name',
-                'description'    => 'Updated description.',
-                'old_price'      => '500.00',
-                'new_price'      => '400.00',
-                'is_active'      => '1',
+                'name' => 'Updated Product Name',
+                'description' => 'Updated description.',
+                'old_price' => '500.00',
+                'new_price' => '400.00',
+                'is_active' => '1',
                 // no image uploaded
             ]);
 
@@ -223,14 +225,14 @@ class ProductCrudTest extends TestCase
 
         $response = $this->actingAs($this->admin)
             ->put(route('admin.products.update', $product), [
-                'category_id'    => $this->category->id,
+                'category_id' => $this->category->id,
                 'subcategory_id' => $this->subcategory->id,
-                'name'           => 'Updated With New Image',
-                'description'    => 'Updated description.',
-                'image'          => $newImage,
-                'old_price'      => '500.00',
-                'new_price'      => '400.00',
-                'is_active'      => '1',
+                'name' => 'Updated With New Image',
+                'description' => 'Updated description.',
+                'image' => $newImage,
+                'old_price' => '500.00',
+                'new_price' => '400.00',
+                'is_active' => '1',
             ]);
 
         $response->assertRedirect(route('admin.products.index'));
@@ -281,5 +283,46 @@ class ProductCrudTest extends TestCase
 
         $product->refresh();
         $this->assertFalse($product->is_active);
+    }
+
+    // -------------------------------------------------------------------------
+    // Filtering
+    // -------------------------------------------------------------------------
+
+    public function test_search_filters_products(): void
+    {
+        Product::factory()
+            ->forSubcategory($this->category->id, $this->subcategory->id)
+            ->create(['name' => 'Alpha Widget']);
+
+        Product::factory()
+            ->forSubcategory($this->category->id, $this->subcategory->id)
+            ->create(['name' => 'Beta Gadget']);
+
+        $response = $this->actingAs($this->admin)
+            ->get(route('admin.products.index', ['search' => 'Alpha']));
+
+        $response->assertSee('Alpha Widget');
+        $response->assertDontSee('Beta Gadget');
+    }
+
+    public function test_filter_by_category_filters_products(): void
+    {
+        $otherCategory = Category::factory()->create();
+        $otherSub = Subcategory::factory()->create(['category_id' => $otherCategory->id]);
+
+        Product::factory()
+            ->forSubcategory($this->category->id, $this->subcategory->id)
+            ->create(['name' => 'In Cat One']);
+
+        Product::factory()
+            ->forSubcategory($otherCategory->id, $otherSub->id)
+            ->create(['name' => 'In Cat Two']);
+
+        $response = $this->actingAs($this->admin)
+            ->get(route('admin.products.index', ['category_id' => $this->category->id]));
+
+        $response->assertSee('In Cat One');
+        $response->assertDontSee('In Cat Two');
     }
 }
