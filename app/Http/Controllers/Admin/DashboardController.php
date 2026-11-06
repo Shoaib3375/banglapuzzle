@@ -12,9 +12,12 @@ class DashboardController extends Controller
     public function index()
     {
         return view('admin.dashboard.index', [
-            'categoryCount'    => Category::count(),
-            'subcategoryCount' => Subcategory::count(),
-            'productCount'     => Product::count(),
+            'categoryCount'        => Category::count(),
+            'activeCategoryCount'  => Category::where('is_active', true)->count(),
+            'subcategoryCount'     => Subcategory::count(),
+            'productCount'         => Product::count(),
+            'activeProductCount'   => Product::where('is_active', true)->count(),
+            'inactiveProductCount' => Product::where('is_active', false)->count(),
         ]);
     }
 }

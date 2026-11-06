@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "feat",
   "description": "Product CRUD (Admin) + Image Handling + Admin Dashboard. Depends on FEAT-002 (admin layout, auth, category/subcategory models/routes must exist). Covers ProductImageService, Product Form Requests, ProductController, Product Blade views, Dashboard controller and view, storage:link, placeholder image.",
-  "status": "pending",
+  "status": "completed",
   "steps": [
     "Run php artisan storage:link to create the public/storage → storage/app/public symlink. If it already exists, the command will report it and exit 0.",
 
@@ -49,5 +49,5 @@
     "php artisan test --filter AdminDashboardTest"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All FEAT-003 steps implemented successfully. php artisan storage:link exits 0. public/images/placeholder.png created (69-byte minimal PNG). ProductImageService stores via Storage::disk('public')->putFileAs('products', $file, $uuid.ext) and deletes safely with null-check. StoreProductRequest: image required, new_price lte:old_price, withValidator() checks subcategory belongs to selected category. UpdateProductRequest: image nullable, slug unique ignores current product. ProductController wraps store/update/destroy in DB::transaction; old image deleted ONLY after successful DB update; on store failure after image upload, uploaded file is cleaned up. Product index/create/edit Blade views with AJAX subcategory loading, image preview (FileReader), slug auto-fill on name blur. DashboardController enhanced with 6 stat vars (categoryCount, activeCategoryCount, subcategoryCount, productCount, activeProductCount, inactiveProductCount). Dashboard view shows 5 stat cards with colored icons. Routes: 29 admin routes registered. bootstrap/app.php updated with redirectGuestsTo(admin.login) to fix auth middleware redirect. Tests: ProductCrudTest 12/12 pass, AdminDashboardTest 3/3 pass, full suite 17/17 pass. npm run build exits 0 (60.24 kB CSS)."
 }

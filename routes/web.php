@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\SubcategoryController;
 use App\Http\Controllers\Auth\AdminLoginController;
 use Illuminate\Support\Facades\Route;
@@ -57,4 +58,9 @@ Route::middleware(['auth', 'admin'])
         // AJAX: subcategories filtered by category
         Route::get('subcategories-by-category/{category}', [SubcategoryController::class, 'byCategory'])
             ->name('subcategories.byCategory');
+
+        // Products
+        Route::resource('products', ProductController::class);
+        Route::post('products/{product}/toggle-active', [ProductController::class, 'toggleActive'])
+            ->name('products.toggleActive');
     });

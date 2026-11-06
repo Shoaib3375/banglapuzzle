@@ -1,0 +1,59 @@
+<?php
+
+namespace App\Http\Requests\Admin;
+
+use App\Models\Subcategory;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
+
+class StoreProductRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'category_id'    => ['required', 'integer', 'exists:categories,id'],
+            'subcategory_id' => ['required', 'integer', 'exists:subcategories,id'],
+            'name'           => ['required', 'string', 'max:150'],
+            'slug'           => ['nullable', 'string', 'unique:products,slug'],
+            'description'    => ['required', 'string'],
+            'image'          => ['required', 'image', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
+            'old_price'      => ['required', 'numeric', 'min:0'],
+            'new_price'      => ['required', 'numeric', 'min:0', 'lte:old_price'],
+            'is_active'      => ['nullable', 'boolean'],
+        ];
+    }
+
+    /**
+     * Ensure the selected subcategory belongs to the selected category.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            $subcategoryId = $this->input('subcategory_id');
+            $categoryId    = $this->input('category_id');
+
+            if ($subcategoryId && $categoryId) {
+                $subcategory = Subcategory::find($subcategoryId);
+
+                if (! $subcategory || (int) $subcategory->category_id !== (int) $categoryId) {
+                    $validator->errors()->add(
+                        'subcategory_id',
+                        'The selected subcategory does not belong to the selected category.'
+                    );
+                }
+            }
+        });
+    }
+
+    public function messages(): array
+    {
+        return [
+            'new_price.lte' => 'The new price must be less than or equal to the old price.',
+        ];
+    }
+}
