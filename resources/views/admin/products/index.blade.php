@@ -7,7 +7,7 @@
 <div class="py-4">
 
     {{-- Filter bar --}}
-    <form method="GET" action="{{ route('admin.products.index') }}" class="flex flex-wrap gap-3 mb-6">
+    <form method="GET" action="{{ route('admin.products.index') }}" class="flex flex-wrap gap-3 mb-6 items-center">
 
         {{-- Search --}}
         <input
@@ -15,14 +15,14 @@
             name="search"
             value="{{ request('search') }}"
             placeholder="Search by name…"
-            class="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-52"
+            class="rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 w-52"
         >
 
         {{-- Category filter --}}
         <select
             name="category_id"
             id="filter-category"
-            class="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            class="rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         >
             <option value="">All Categories</option>
             @foreach ($categories as $cat)
@@ -36,7 +36,7 @@
         <select
             name="subcategory_id"
             id="filter-subcategory"
-            class="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            class="rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         >
             <option value="">All Subcategories</option>
             @foreach ($subcategories as $sub)
@@ -49,7 +49,7 @@
         {{-- Status filter --}}
         <select
             name="is_active"
-            class="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            class="rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         >
             <option value="">All Statuses</option>
             <option value="1" {{ request('is_active') === '1' ? 'selected' : '' }}>Active</option>
@@ -59,7 +59,7 @@
         {{-- Sort --}}
         <select
             name="sort"
-            class="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            class="rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         >
             <option value="newest" {{ request('sort', 'newest') === 'newest' ? 'selected' : '' }}>Newest First</option>
             <option value="price_asc" {{ request('sort') === 'price_asc' ? 'selected' : '' }}>Price: Low → High</option>
@@ -68,7 +68,7 @@
 
         <button
             type="submit"
-            class="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 transition-colors"
+            class="rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-300 transition-colors"
         >
             Filter
         </button>
@@ -76,7 +76,7 @@
         @if (request()->hasAny(['search', 'category_id', 'subcategory_id', 'is_active', 'sort']))
             <a
                 href="{{ route('admin.products.index') }}"
-                class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors"
+                class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 transition-colors"
             >
                 Clear
             </a>
@@ -85,7 +85,7 @@
         <div class="ml-auto">
             <a
                 href="{{ route('admin.products.create') }}"
-                class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors shadow"
+                class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm"
             >
                 + New Product
             </a>
@@ -93,23 +93,23 @@
     </form>
 
     {{-- Table --}}
-    <div class="bg-white rounded-xl shadow overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200 text-sm">
-            <thead class="bg-gray-50">
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50">
                 <tr>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-600">Image</th>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-600">Name</th>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-600">Category</th>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-600">Subcategory</th>
-                    <th class="px-4 py-3 text-right font-semibold text-gray-600">Old Price</th>
-                    <th class="px-4 py-3 text-right font-semibold text-gray-600">New Price</th>
-                    <th class="px-4 py-3 text-center font-semibold text-gray-600">Status</th>
-                    <th class="px-4 py-3 text-right font-semibold text-gray-600">Actions</th>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Image</th>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Name</th>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Category</th>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Subcategory</th>
+                    <th class="px-4 py-3 text-right font-semibold text-slate-600">Old Price</th>
+                    <th class="px-4 py-3 text-right font-semibold text-slate-600">New Price</th>
+                    <th class="px-4 py-3 text-center font-semibold text-slate-600">Status</th>
+                    <th class="px-4 py-3 text-right font-semibold text-slate-600">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody class="divide-y divide-slate-100">
                 @forelse ($products as $product)
-                    <tr class="hover:bg-gray-50">
+                    <tr class="hover:bg-slate-50">
                         {{-- Thumbnail --}}
                         <td class="px-4 py-3">
                             @php
@@ -120,28 +120,25 @@
                             <img
                                 src="{{ $thumb }}"
                                 alt="{{ $product->image ? $product->name : 'No image' }}"
-                                class="w-12 h-12 object-cover rounded-lg border border-gray-200 {{ $product->image ? '' : 'opacity-50' }}"
+                                class="w-12 h-12 object-cover rounded-lg border border-slate-200"
                             >
                         </td>
 
-                        <td class="px-4 py-3 font-medium text-gray-900 max-w-xs truncate">{{ $product->name }}</td>
-                        <td class="px-4 py-3 text-gray-600">{{ $product->category?->name }}</td>
-                        <td class="px-4 py-3 text-gray-600">{{ $product->subcategory?->name }}</td>
-                        <td class="px-4 py-3 text-right text-gray-500">৳{{ number_format($product->old_price, 2) }}</td>
-                        <td class="px-4 py-3 text-right font-semibold text-gray-800">৳{{ number_format($product->new_price, 2) }}</td>
+                        <td class="px-4 py-3 font-medium text-slate-900 max-w-xs truncate">{{ $product->name }}</td>
+                        <td class="px-4 py-3 text-slate-600">{{ $product->category?->name }}</td>
+                        <td class="px-4 py-3 text-slate-600">{{ $product->subcategory?->name }}</td>
+                        <td class="px-4 py-3 text-right text-slate-500">৳{{ number_format($product->old_price, 2) }}</td>
+                        <td class="px-4 py-3 text-right font-semibold text-slate-800">৳{{ number_format($product->new_price, 2) }}</td>
 
                         {{-- Status / Toggle --}}
                         <td class="px-4 py-3 text-center">
                             <form method="POST" action="{{ route('admin.products.toggleActive', $product) }}">
                                 @csrf
-                                <button
-                                    type="submit"
-                                    class="inline-flex items-center rounded-full px-3 py-0.5 text-xs font-semibold transition-colors
-                                        {{ $product->is_active
-                                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                            : 'bg-red-100 text-red-700 hover:bg-red-200' }}"
-                                >
-                                    {{ $product->is_active ? 'Active' : 'Inactive' }}
+                                <button type="submit" class="cursor-pointer">
+                                    <x-badge
+                                        :variant="$product->is_active ? 'emerald' : 'red'"
+                                        :text="$product->is_active ? 'Active' : 'Inactive'"
+                                    />
                                 </button>
                             </form>
                         </td>
@@ -150,7 +147,7 @@
                         <td class="px-4 py-3 text-right space-x-2 whitespace-nowrap">
                             <a
                                 href="{{ route('admin.products.edit', $product) }}"
-                                class="inline-flex items-center rounded-lg bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100 transition-colors"
+                                class="inline-flex items-center rounded-lg bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
                             >
                                 Edit
                             </a>
@@ -173,8 +170,14 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="px-4 py-8 text-center text-gray-400">
-                            No products found.
+                        <td colspan="8" class="p-0">
+                            <x-empty-state
+                                title="No products found"
+                                description="Get started by adding your first product."
+                                icon="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                                actionLabel="+ New Product"
+                                :actionUrl="route('admin.products.create')"
+                            />
                         </td>
                     </tr>
                 @endforelse
@@ -203,10 +206,9 @@
         categorySelect.addEventListener('change', function () {
             const catId = this.value;
 
-            // Reset subcategory list
             subcategorySelect.innerHTML = '<option value="">All Subcategories</option>';
 
-            if (!catId) return;
+            if (!catId) { return; }
 
             const url = byCategoryUrl.replace('__ID__', catId);
 
@@ -214,7 +216,7 @@
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
                     data.forEach(function (sub) {
-                        const opt = document.createElement('option');
+                        const opt       = document.createElement('option');
                         opt.value       = sub.id;
                         opt.textContent = sub.name;
                         subcategorySelect.appendChild(opt);

@@ -5,14 +5,16 @@
 
 @section('content')
 <div class="py-4">
-    {{-- Header row --}}
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        {{-- Category filter --}}
-        <form method="GET" action="{{ route('admin.subcategories.index') }}" class="flex gap-2 flex-wrap">
+
+    <x-admin.page-header title="Subcategories" createRoute="admin.subcategories.create" createLabel="+ New Subcategory" />
+
+    {{-- Category filter --}}
+    <div class="mb-6">
+        <form method="GET" action="{{ route('admin.subcategories.index') }}" class="flex gap-2 flex-wrap items-center">
             <select
                 name="category_id"
                 onchange="this.form.submit()"
-                class="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                class="rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
                 <option value="">All Categories</option>
                 @foreach ($categories as $cat)
@@ -22,58 +24,48 @@
                 @endforeach
             </select>
             @if (request('category_id'))
-                <a href="{{ route('admin.subcategories.index') }}" class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors">
+                <a href="{{ route('admin.subcategories.index') }}" class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 transition-colors">
                     Clear
                 </a>
             @endif
         </form>
-
-        <a
-            href="{{ route('admin.subcategories.create') }}"
-            class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors shadow"
-        >
-            + New Subcategory
-        </a>
     </div>
 
     {{-- Table --}}
-    <div class="bg-white rounded-xl shadow overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200 text-sm">
-            <thead class="bg-gray-50">
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50">
                 <tr>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-600">#</th>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-600">Name</th>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-600">Category</th>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-600">Slug</th>
-                    <th class="px-4 py-3 text-center font-semibold text-gray-600">Status</th>
-                    <th class="px-4 py-3 text-right font-semibold text-gray-600">Actions</th>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-600">#</th>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Name</th>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Category</th>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Slug</th>
+                    <th class="px-4 py-3 text-center font-semibold text-slate-600">Status</th>
+                    <th class="px-4 py-3 text-right font-semibold text-slate-600">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody class="divide-y divide-slate-100">
                 @forelse ($subcategories as $subcategory)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 text-gray-500">{{ $subcategory->id }}</td>
-                        <td class="px-4 py-3 font-medium text-gray-900">{{ $subcategory->name }}</td>
-                        <td class="px-4 py-3 text-gray-600">{{ $subcategory->category->name ?? '—' }}</td>
-                        <td class="px-4 py-3 text-gray-500 font-mono text-xs">{{ $subcategory->slug }}</td>
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-4 py-3 text-slate-500">{{ $subcategory->id }}</td>
+                        <td class="px-4 py-3 font-medium text-slate-900">{{ $subcategory->name }}</td>
+                        <td class="px-4 py-3 text-slate-600">{{ $subcategory->category->name ?? '—' }}</td>
+                        <td class="px-4 py-3 text-slate-500 font-mono text-xs">{{ $subcategory->slug }}</td>
                         <td class="px-4 py-3 text-center">
                             <form method="POST" action="{{ route('admin.subcategories.toggleActive', $subcategory) }}">
                                 @csrf
-                                <button
-                                    type="submit"
-                                    class="inline-flex items-center rounded-full px-3 py-0.5 text-xs font-semibold transition-colors
-                                        {{ $subcategory->is_active
-                                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                            : 'bg-red-100 text-red-700 hover:bg-red-200' }}"
-                                >
-                                    {{ $subcategory->is_active ? 'Active' : 'Inactive' }}
+                                <button type="submit" class="cursor-pointer">
+                                    <x-badge
+                                        :variant="$subcategory->is_active ? 'emerald' : 'red'"
+                                        :text="$subcategory->is_active ? 'Active' : 'Inactive'"
+                                    />
                                 </button>
                             </form>
                         </td>
-                        <td class="px-4 py-3 text-right space-x-2">
+                        <td class="px-4 py-3 text-right space-x-2 whitespace-nowrap">
                             <a
                                 href="{{ route('admin.subcategories.edit', $subcategory) }}"
-                                class="inline-flex items-center rounded-lg bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100 transition-colors"
+                                class="inline-flex items-center rounded-lg bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
                             >
                                 Edit
                             </a>
@@ -96,8 +88,14 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-4 py-8 text-center text-gray-400">
-                            No subcategories found.
+                        <td colspan="6" class="p-0">
+                            <x-empty-state
+                                title="No subcategories found"
+                                description="Get started by creating your first subcategory."
+                                icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                                actionLabel="+ New Subcategory"
+                                :actionUrl="route('admin.subcategories.create')"
+                            />
                         </td>
                     </tr>
                 @endforelse
@@ -111,5 +109,6 @@
             {{ $subcategories->links() }}
         </div>
     @endif
+
 </div>
 @endsection

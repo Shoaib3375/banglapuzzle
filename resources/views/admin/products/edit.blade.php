@@ -7,23 +7,23 @@
 <div class="py-4 max-w-3xl">
 
     <div class="mb-4">
-        <a href="{{ route('admin.products.index') }}" class="text-sm text-indigo-600 hover:text-indigo-800">← Back to Products</a>
+        <a href="{{ route('admin.products.index') }}" class="text-sm text-blue-600 hover:text-blue-800">← Back to Products</a>
     </div>
 
-    <div class="bg-white rounded-xl shadow p-6">
+    <div class="bg-white rounded-xl shadow-sm p-6">
         <form method="POST" action="{{ route('admin.products.update', $product) }}" enctype="multipart/form-data" novalidate>
             @csrf
             @method('PUT')
 
             {{-- Category --}}
             <div class="mb-5">
-                <label for="category_id" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="category_id" class="block text-sm font-medium text-slate-700 mb-1">
                     Category <span class="text-red-500">*</span>
                 </label>
                 <select
                     id="category_id"
                     name="category_id"
-                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 @error('category_id') border-red-400 @enderror"
+                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 @error('category_id') border-red-400 @enderror"
                 >
                     <option value="">— Select a category —</option>
                     @foreach ($categories as $cat)
@@ -37,15 +37,15 @@
                 @enderror
             </div>
 
-            {{-- Subcategory (pre-populated from product's category) --}}
+            {{-- Subcategory (pre-populated via server-side + AJAX on change) --}}
             <div class="mb-5">
-                <label for="subcategory_id" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="subcategory_id" class="block text-sm font-medium text-slate-700 mb-1">
                     Subcategory <span class="text-red-500">*</span>
                 </label>
                 <select
                     id="subcategory_id"
                     name="subcategory_id"
-                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 @error('subcategory_id') border-red-400 @enderror"
+                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 @error('subcategory_id') border-red-400 @enderror"
                 >
                     <option value="">— Select a subcategory —</option>
                     @foreach ($subcategories as $sub)
@@ -61,7 +61,7 @@
 
             {{-- Name --}}
             <div class="mb-5">
-                <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="name" class="block text-sm font-medium text-slate-700 mb-1">
                     Name <span class="text-red-500">*</span>
                 </label>
                 <input
@@ -70,7 +70,7 @@
                     name="name"
                     value="{{ old('name', $product->name) }}"
                     maxlength="150"
-                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 @error('name') border-red-400 @enderror"
+                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 @error('name') border-red-400 @enderror"
                 >
                 @error('name')
                     <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -79,15 +79,15 @@
 
             {{-- Slug --}}
             <div class="mb-5">
-                <label for="slug" class="block text-sm font-medium text-gray-700 mb-1">
-                    Slug <span class="text-gray-400 text-xs">(auto-generated if empty)</span>
+                <label for="slug" class="block text-sm font-medium text-slate-700 mb-1">
+                    Slug <span class="text-slate-400 text-xs">(auto-generated if empty)</span>
                 </label>
                 <input
                     type="text"
                     id="slug"
                     name="slug"
                     value="{{ old('slug', $product->slug) }}"
-                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 @error('slug') border-red-400 @enderror"
+                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 @error('slug') border-red-400 @enderror"
                 >
                 @error('slug')
                     <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -96,14 +96,14 @@
 
             {{-- Description --}}
             <div class="mb-5">
-                <label for="description" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="description" class="block text-sm font-medium text-slate-700 mb-1">
                     Description <span class="text-red-500">*</span>
                 </label>
                 <textarea
                     id="description"
                     name="description"
                     rows="4"
-                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 @error('description') border-red-400 @enderror"
+                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 @error('description') border-red-400 @enderror"
                 >{{ old('description', $product->description) }}</textarea>
                 @error('description')
                     <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -112,7 +112,7 @@
 
             {{-- Current Image --}}
             <div class="mb-5">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Product Image</label>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Product Image</label>
 
                 @if ($product->image)
                     <div class="mb-3 flex items-center gap-3">
@@ -124,9 +124,9 @@
                         <img
                             src="{{ $currentThumb }}"
                             alt="{{ $product->name }}"
-                            class="h-24 w-24 rounded-lg object-cover border border-gray-200"
+                            class="h-24 w-24 rounded-lg object-cover border border-slate-200"
                         >
-                        <p class="text-xs text-gray-500">Current image — upload a new one to replace it.</p>
+                        <p class="text-xs text-slate-500">Current image — upload a new one to replace it.</p>
                     </div>
                 @endif
 
@@ -135,14 +135,14 @@
                     id="image"
                     name="image"
                     accept="image/jpeg,image/jpg,image/png,image/webp"
-                    class="w-full text-sm text-gray-600 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100 @error('image') outline outline-red-400 rounded-lg @enderror"
+                    class="w-full text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100 @error('image') outline outline-red-400 rounded-lg @enderror"
                 >
-                <p class="mt-1 text-xs text-gray-400">JPEG, JPG, PNG, WebP — max 2 MB. Leave blank to keep the current image.</p>
+                <p class="mt-1 text-xs text-slate-400">JPEG, JPG, PNG, WebP — max 2 MB. Leave blank to keep the current image.</p>
 
                 {{-- New image preview --}}
                 <div id="image-preview-wrap" class="mt-2 hidden">
-                    <p class="text-xs text-gray-500 mb-1">New image preview:</p>
-                    <img id="image-preview" src="" alt="Preview" class="h-32 w-32 rounded-lg object-cover border border-gray-200">
+                    <p class="text-xs text-slate-500 mb-1">New image preview:</p>
+                    <img id="image-preview" src="" alt="Preview" class="h-32 w-32 rounded-lg object-cover border border-slate-200">
                 </div>
                 @error('image')
                     <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -152,7 +152,7 @@
             {{-- Prices --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
                 <div>
-                    <label for="old_price" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="old_price" class="block text-sm font-medium text-slate-700 mb-1">
                         Old Price (৳) <span class="text-red-500">*</span>
                     </label>
                     <input
@@ -162,14 +162,14 @@
                         value="{{ old('old_price', $product->old_price) }}"
                         min="0"
                         step="0.01"
-                        class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 @error('old_price') border-red-400 @enderror"
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 @error('old_price') border-red-400 @enderror"
                     >
                     @error('old_price')
                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
                 <div>
-                    <label for="new_price" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="new_price" class="block text-sm font-medium text-slate-700 mb-1">
                         New Price (৳) <span class="text-red-500">*</span>
                     </label>
                     <input
@@ -179,7 +179,7 @@
                         value="{{ old('new_price', $product->new_price) }}"
                         min="0"
                         step="0.01"
-                        class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 @error('new_price') border-red-400 @enderror"
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 @error('new_price') border-red-400 @enderror"
                     >
                     @error('new_price')
                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -195,9 +195,9 @@
                         name="is_active"
                         value="1"
                         {{ old('is_active', $product->is_active) ? 'checked' : '' }}
-                        class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                     >
-                    <span class="text-sm font-medium text-gray-700">Active (visible in storefront)</span>
+                    <span class="text-sm font-medium text-slate-700">Active (visible in storefront)</span>
                 </label>
             </div>
 
@@ -205,13 +205,13 @@
             <div class="flex items-center gap-3">
                 <button
                     type="submit"
-                    class="rounded-lg bg-indigo-600 px-6 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors shadow"
+                    class="rounded-lg bg-blue-600 px-6 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm"
                 >
                     Update Product
                 </button>
                 <a
                     href="{{ route('admin.products.index') }}"
-                    class="rounded-lg bg-gray-100 px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
+                    class="rounded-lg bg-slate-100 px-6 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 transition-colors"
                 >
                     Cancel
                 </a>
@@ -238,20 +238,18 @@
     const currentCategoryId    = '{{ old('category_id', $product->category_id) }}';
     const currentSubcategoryId = '{{ old('subcategory_id', $product->subcategory_id) }}';
 
-    // The edit form already server-renders subcategories from controller,
-    // but on category change we need to reload them via AJAX.
     categorySelect.addEventListener('change', function () {
         const catId = this.value;
         subSelect.innerHTML = '<option value="">— Select a subcategory —</option>';
-        if (!catId) return;
+        if (!catId) { return; }
 
         const url = byCategoryUrl.replace('__ID__', catId);
         fetch(url)
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 data.forEach(function (sub) {
-                    const opt = document.createElement('option');
-                    opt.value = sub.id;
+                    const opt       = document.createElement('option');
+                    opt.value       = sub.id;
                     opt.textContent = sub.name;
                     if (String(sub.id) === String(currentSubcategoryId) && String(catId) === String(currentCategoryId)) {
                         opt.selected = true;
@@ -261,26 +259,21 @@
             });
     });
 
-    // Auto-fill slug from name (only if slug is empty)
     nameInput.addEventListener('blur', function () {
-        if (slugInput.value.trim() !== '') return;
-        const slug = this.value.trim()
+        if (slugInput.value.trim() !== '') { return; }
+        slugInput.value = this.value
             .toLowerCase()
-            .replace(/[^a-z0-9\s-]/g, '')
-            .replace(/[\s_]+/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^-+|-+$/g, '');
-        slugInput.value = slug;
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '');
     });
 
-    // New image preview
     imageInput.addEventListener('change', function () {
         const file = this.files[0];
         if (!file) {
             previewWrap.classList.add('hidden');
             return;
         }
-        const reader = new FileReader();
+        const reader  = new FileReader();
         reader.onload = function (e) {
             previewImg.src = e.target.result;
             previewWrap.classList.remove('hidden');

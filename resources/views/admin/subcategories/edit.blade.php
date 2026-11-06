@@ -5,21 +5,26 @@
 
 @section('content')
 <div class="py-4 max-w-2xl">
-    <div class="bg-white rounded-xl shadow p-6">
+
+    <div class="mb-4">
+        <a href="{{ route('admin.subcategories.index') }}" class="text-sm text-blue-600 hover:text-blue-800">← Back to Subcategories</a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-6">
         <form method="POST" action="{{ route('admin.subcategories.update', $subcategory) }}" novalidate>
             @csrf
             @method('PUT')
 
             {{-- Category --}}
             <div class="mb-4">
-                <label for="category_id" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="category_id" class="block text-sm font-medium text-slate-700 mb-1">
                     Category <span class="text-red-500">*</span>
                 </label>
                 <select
                     id="category_id"
                     name="category_id"
                     required
-                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 @error('category_id') border-red-400 @enderror"
+                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 @error('category_id') border-red-400 @enderror"
                 >
                     <option value="">— Select a category —</option>
                     @foreach ($categories as $category)
@@ -35,7 +40,7 @@
 
             {{-- Name --}}
             <div class="mb-4">
-                <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="name" class="block text-sm font-medium text-slate-700 mb-1">
                     Name <span class="text-red-500">*</span>
                 </label>
                 <input
@@ -45,7 +50,7 @@
                     value="{{ old('name', $subcategory->name) }}"
                     maxlength="100"
                     required
-                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 @error('name') border-red-400 @enderror"
+                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 @error('name') border-red-400 @enderror"
                 >
                 @error('name')
                     <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -54,8 +59,8 @@
 
             {{-- Slug --}}
             <div class="mb-4">
-                <label for="slug" class="block text-sm font-medium text-gray-700 mb-1">
-                    Slug <span class="text-gray-400 text-xs">(auto-generated if cleared)</span>
+                <label for="slug" class="block text-sm font-medium text-slate-700 mb-1">
+                    Slug <span class="text-slate-400 text-xs">(auto-generated if cleared)</span>
                 </label>
                 <input
                     id="slug"
@@ -63,7 +68,7 @@
                     name="slug"
                     value="{{ old('slug', $subcategory->slug) }}"
                     maxlength="120"
-                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 @error('slug') border-red-400 @enderror"
+                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 @error('slug') border-red-400 @enderror"
                 >
                 @error('slug')
                     <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -72,14 +77,14 @@
 
             {{-- Description --}}
             <div class="mb-4">
-                <label for="description" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="description" class="block text-sm font-medium text-slate-700 mb-1">
                     Description
                 </label>
                 <textarea
                     id="description"
                     name="description"
                     rows="3"
-                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 @error('description') border-red-400 @enderror"
+                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 @error('description') border-red-400 @enderror"
                 >{{ old('description', $subcategory->description) }}</textarea>
                 @error('description')
                     <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -94,21 +99,21 @@
                     name="is_active"
                     value="1"
                     {{ old('is_active', $subcategory->is_active) ? 'checked' : '' }}
-                    class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                 >
-                <label for="is_active" class="text-sm font-medium text-gray-700">Active</label>
+                <label for="is_active" class="text-sm font-medium text-slate-700">Active</label>
             </div>
 
             <div class="flex gap-3">
                 <button
                     type="submit"
-                    class="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors shadow"
+                    class="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm"
                 >
                     Update Subcategory
                 </button>
                 <a
                     href="{{ route('admin.subcategories.index') }}"
-                    class="rounded-lg bg-gray-100 px-5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
+                    class="rounded-lg bg-slate-100 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 transition-colors"
                 >
                     Cancel
                 </a>
@@ -120,7 +125,6 @@
 
 @push('scripts')
 <script>
-    // Auto-fill slug from name on blur if slug is empty
     document.getElementById('name').addEventListener('blur', function () {
         const slugField = document.getElementById('slug');
         if (slugField.value.trim() === '') {

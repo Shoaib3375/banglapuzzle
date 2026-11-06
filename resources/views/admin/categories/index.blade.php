@@ -5,75 +5,67 @@
 
 @section('content')
 <div class="py-4">
-    {{-- Header row --}}
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        {{-- Search --}}
-        <form method="GET" action="{{ route('admin.categories.index') }}" class="flex gap-2">
+
+    <x-admin.page-header title="Categories" createRoute="admin.categories.create" createLabel="+ New Category" />
+
+    {{-- Search bar --}}
+    <div class="mb-6">
+        <form method="GET" action="{{ route('admin.categories.index') }}" class="flex gap-2 flex-wrap">
             <input
                 type="text"
                 name="search"
                 value="{{ request('search') }}"
                 placeholder="Search by name…"
-                class="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-60"
+                class="rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 w-60"
             >
-            <button type="submit" class="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 transition-colors">
+            <button type="submit" class="rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-300 transition-colors">
                 Search
             </button>
             @if (request('search'))
-                <a href="{{ route('admin.categories.index') }}" class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors">
+                <a href="{{ route('admin.categories.index') }}" class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 transition-colors">
                     Clear
                 </a>
             @endif
         </form>
-
-        <a
-            href="{{ route('admin.categories.create') }}"
-            class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors shadow"
-        >
-            + New Category
-        </a>
     </div>
 
     {{-- Table --}}
-    <div class="bg-white rounded-xl shadow overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200 text-sm">
-            <thead class="bg-gray-50">
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50">
                 <tr>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-600">#</th>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-600">Name</th>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-600">Slug</th>
-                    <th class="px-4 py-3 text-center font-semibold text-gray-600">Subcategories</th>
-                    <th class="px-4 py-3 text-center font-semibold text-gray-600">Products</th>
-                    <th class="px-4 py-3 text-center font-semibold text-gray-600">Status</th>
-                    <th class="px-4 py-3 text-right font-semibold text-gray-600">Actions</th>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-600">#</th>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Name</th>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Slug</th>
+                    <th class="px-4 py-3 text-center font-semibold text-slate-600">Subcategories</th>
+                    <th class="px-4 py-3 text-center font-semibold text-slate-600">Products</th>
+                    <th class="px-4 py-3 text-center font-semibold text-slate-600">Status</th>
+                    <th class="px-4 py-3 text-right font-semibold text-slate-600">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody class="divide-y divide-slate-100">
                 @forelse ($categories as $category)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 text-gray-500">{{ $category->id }}</td>
-                        <td class="px-4 py-3 font-medium text-gray-900">{{ $category->name }}</td>
-                        <td class="px-4 py-3 text-gray-500 font-mono text-xs">{{ $category->slug }}</td>
-                        <td class="px-4 py-3 text-center text-gray-700">{{ $category->subcategories_count }}</td>
-                        <td class="px-4 py-3 text-center text-gray-700">{{ $category->products_count }}</td>
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-4 py-3 text-slate-500">{{ $category->id }}</td>
+                        <td class="px-4 py-3 font-medium text-slate-900">{{ $category->name }}</td>
+                        <td class="px-4 py-3 text-slate-500 font-mono text-xs">{{ $category->slug }}</td>
+                        <td class="px-4 py-3 text-center text-slate-700">{{ $category->subcategories_count }}</td>
+                        <td class="px-4 py-3 text-center text-slate-700">{{ $category->products_count }}</td>
                         <td class="px-4 py-3 text-center">
                             <form method="POST" action="{{ route('admin.categories.toggleActive', $category) }}">
                                 @csrf
-                                <button
-                                    type="submit"
-                                    class="inline-flex items-center rounded-full px-3 py-0.5 text-xs font-semibold transition-colors
-                                        {{ $category->is_active
-                                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                            : 'bg-red-100 text-red-700 hover:bg-red-200' }}"
-                                >
-                                    {{ $category->is_active ? 'Active' : 'Inactive' }}
+                                <button type="submit" class="cursor-pointer">
+                                    <x-badge
+                                        :variant="$category->is_active ? 'emerald' : 'red'"
+                                        :text="$category->is_active ? 'Active' : 'Inactive'"
+                                    />
                                 </button>
                             </form>
                         </td>
-                        <td class="px-4 py-3 text-right space-x-2">
+                        <td class="px-4 py-3 text-right space-x-2 whitespace-nowrap">
                             <a
                                 href="{{ route('admin.categories.edit', $category) }}"
-                                class="inline-flex items-center rounded-lg bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100 transition-colors"
+                                class="inline-flex items-center rounded-lg bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
                             >
                                 Edit
                             </a>
@@ -96,8 +88,14 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-4 py-8 text-center text-gray-400">
-                            No categories found.
+                        <td colspan="7" class="p-0">
+                            <x-empty-state
+                                title="No categories found"
+                                description="Get started by creating your first category."
+                                icon="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                                actionLabel="+ New Category"
+                                :actionUrl="route('admin.categories.create')"
+                            />
                         </td>
                     </tr>
                 @endforelse
@@ -111,5 +109,6 @@
             {{ $categories->links() }}
         </div>
     @endif
+
 </div>
 @endsection
