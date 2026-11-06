@@ -1,0 +1,51 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Foundation: npm install, all migrations, updated User model, Eloquent models (Category/Subcategory/Product), factories, and DatabaseSeeder. This FEAT is a prerequisite for all other FEATs — it establishes the complete database schema and data layer.",
+  "status": "completed",
+  "steps": [
+    "Run npm install from e:\\interview\\BanglaPuzzle to populate node_modules. Then run npm run build to verify Tailwind v4 + Vite compiles cleanly. Expected: public/build/manifest.json created.",
+
+    "Create database/migrations/2025_01_01_000001_add_is_admin_to_users_table.php: add boolean 'is_admin' default false after 'remember_token' in up(); drop it in down().",
+
+    "Create database/migrations/2025_01_01_000002_create_categories_table.php: id, name string(100), slug string(120) unique, description nullable text, is_active boolean default true, timestamps.",
+
+    "Create database/migrations/2025_01_01_000003_create_subcategories_table.php: id, category_id unsignedBigInteger with foreign key to categories.id onDelete('restrict'), name string(100), slug string(120), description nullable text, is_active boolean default true, timestamps. Add $table->index('category_id') and $table->unique(['category_id','slug']).",
+
+    "Create database/migrations/2025_01_01_000004_create_products_table.php: id, category_id FK→categories (restrict), subcategory_id FK→subcategories (restrict), name string(150), slug string unique, description text, image nullable string, old_price decimal(12,2) default 0, new_price decimal(12,2) default 0, is_active boolean default true, timestamps. Add separate indexes on category_id, subcategory_id, is_active.",
+
+    "Update app/Models/User.php: replace #[Fillable] attribute with protected $fillable = ['name','email','password'] (do NOT include is_admin in fillable). Replace #[Hidden] attribute with protected $hidden = ['password','remember_token']. Add is_admin boolean cast in casts() method. Keep HasFactory, Notifiable traits.",
+
+    "Create app/Models/Category.php: namespace App\\Models; extends Model; use HasFactory; $fillable = ['name','slug','description','is_active']; casts(): is_active=>boolean; relationships: hasMany(Subcategory::class), hasMany(Product::class); scopeActive($q); static boot() with 'creating'/'updating' events that auto-generate unique slug from name via Str::slug() with numeric suffix loop if collision.",
+
+    "Create app/Models/Subcategory.php: same pattern; $fillable includes category_id; belongsTo(Category::class); hasMany(Product::class); scopeActive($q); slug uniqueness loop checks uniqueness within same category_id.",
+
+    "Create app/Models/Product.php: $fillable includes all product fields; casts: is_active=>boolean, old_price=>'decimal:2', new_price=>'decimal:2'; belongsTo(Category::class); belongsTo(Subcategory::class); scopeActive($q); getDiscountPercentageAttribute() returns percentage int when old_price > new_price > 0, else null; slug uniqueness loop.",
+
+    "Create database/factories/CategoryFactory.php: realistic Bangladeshi e-commerce categories (Electronics, Fashion, Home & Living, Beauty & Health, Books & Stationery, Sports & Outdoors, Food & Groceries, Toys & Games, Automotive, Office Supplies). Slug auto-generated via Str::slug($name). is_active true.",
+
+    "Create database/factories/SubcategoryFactory.php: state method requires category_id; realistic subcategory names matching parent; is_active true.",
+
+    "Create database/factories/ProductFactory.php: state method requires category_id and subcategory_id; realistic product names; description minimum 2 sentences; old_price fake()->numberBetween(100,10000); new_price fake()->numberBetween(50, old_price); is_active true; image null (no file upload in seeding).",
+
+    "Rewrite database/seeders/DatabaseSeeder.php: (1) Create admin user directly: User::create(['name'=>'Admin','email'=>'admin@banglapuzzle.com','password'=>Hash::make('password'),'is_admin'=>true,'email_verified_at'=>now()]). (2) Create 5 categories via CategoryFactory. (3) For each category, create 3 subcategories via SubcategoryFactory. (4) For each subcategory, create 5 products via ProductFactory. Total: 75 products.",
+
+    "Run php artisan migrate:fresh --seed. Verify exit 0. Then verify: php artisan tinker --execute=\"echo App\\\\Models\\\\Product::count();\" prints 75."
+  ],
+  "acceptance_criteria": [
+    "npm run build exits 0 and public/build/manifest.json exists",
+    "php artisan migrate:fresh exits 0 (all 7 migrations succeed including users, cache, jobs, is_admin addition, categories, subcategories, products)",
+    "php artisan migrate:fresh --seed exits 0",
+    "Product::count() returns 75 after seeding",
+    "User::where('email','admin@banglapuzzle.com')->first()->is_admin is true",
+    "Subcategory::where('category_id', $anyId)->get() returns only subcategories for that category",
+    "Category model auto-generates slug from name when slug is null"
+  ],
+  "verification": [
+    "npm run build",
+    "php artisan migrate:fresh --seed",
+    "php artisan tinker --execute=\"echo App\\\\Models\\\\Product::count();\""
+  ],
+  "blocked_reason": null,
+  "findings": "All migrations run cleanly in timestamp order (7 total). User model uses conventional $fillable/$hidden arrays — PHP 8 attribute syntax removed. Category/Subcategory/Product models have boot() auto-slug generation with uniqueness loops. Subcategory slug uniqueness is scoped per category_id. ProductFactory uses Str::slug + random suffix to avoid slug collisions at seed time. DatabaseSeeder creates 1 admin, 5 categories, 15 subcategories, 75 products. npm run build produces public/build/manifest.json (Tailwind v4 + Vite 8). php artisan migrate:fresh --seed exits 0. Product::count() = 75. Admin is_admin = true verified."
+}
