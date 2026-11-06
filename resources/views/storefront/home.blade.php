@@ -203,19 +203,15 @@
             @if ($products->isNotEmpty())
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     @foreach ($products as $product)
-                        @include('storefront.partials.product-card', ['product' => $product])
+                        <x-storefront.product-card :product="$product" />
                     @endforeach
                 </div>
             @else
-                <div class="bg-white rounded-2xl shadow-sm p-16 text-center">
-                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                        </svg>
-                    </div>
-                    <h3 class="text-lg font-semibold text-gray-700">No products yet</h3>
-                    <p class="text-gray-500 text-sm mt-1">Products are being added. Please check back soon.</p>
-                </div>
+                <x-empty-state
+                    title="No products yet"
+                    description="Products are being added. Please check back soon."
+                    icon="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                />
             @endif
         </section>
 
