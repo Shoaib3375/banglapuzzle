@@ -1,0 +1,62 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Authentication and Admin CRUD for Categories and Subcategories. Depends on FEAT-001 (models and migrations must exist). Covers: EnsureIsAdmin middleware, login/logout, admin layout, Category resource controller + views, Subcategory resource controller + views, AJAX byCategory endpoint.",
+  "status": "pending",
+  "steps": [
+    "Create app/Http/Middleware/EnsureIsAdmin.php: handle() checks Auth::check() && Auth::user()->is_admin; if not, return redirect()->route('admin.login')->with('error','Unauthorized'); otherwise call $next($request).",
+
+    "Register the 'admin' middleware alias in bootstrap/app.php inside ->withMiddleware(function(Middleware $middleware){ $middleware->alias(['admin' => \\App\\Http\\Middleware\\EnsureIsAdmin::class]); }).",
+
+    "Create resources/views/admin/auth/login.blade.php: full-page centered card (Tailwind v4, indigo-600 button), form POST to route('admin.login.post') with @csrf, email input, password input, remember-me checkbox, error display (@if($errors->any()) show first error, @if(session('error')) show session error).",
+
+    "Create app/Http/Controllers/Auth/AdminLoginController.php: showLoginForm() returns view('admin.auth.login'); login(Request $request) validates email|required|email and password|required|string, calls Auth::attempt(['email'=>$email,'password'=>$password,'is_admin'=>true], $remember), on success session()->regenerate() then redirect()->route('admin.dashboard'); on failure back with error 'Invalid credentials or not an admin.'; logout() calls Auth::logout(), session invalidate + regenerate, redirect route('admin.login').",
+
+    "Create resources/views/layouts/admin.blade.php: full HTML skeleton with @vite(['resources/css/app.css','resources/js/app.js']); indigo-800 sidebar (w-64) with nav links for Dashboard, Categories, Subcategories, Products; topbar with page title slot and logout button (POST form); main content area with @yield('content'); @if(session('success')) green flash div; @if(session('error')) red flash div; @stack('scripts') before </body>. Active nav link detected by request()->routeIs('admin.categories.*') etc.",
+
+    "Update routes/web.php: (1) Add public routes: GET /admin/login → AdminLoginController@showLoginForm name('admin.login'); POST /admin/login → AdminLoginController@login name('admin.login.post') middleware('throttle:5,1'); POST /admin/logout → AdminLoginController@logout name('admin.logout'). (2) Add admin group: Route::middleware(['auth','admin'])->prefix('admin')->name('admin.')->group(function(){ // stub dashboard GET 'dashboard' returning view for now }). Remove old welcome route stub.",
+
+    "Create app/Http/Requests/Admin/StoreCategoryRequest.php: authorize() returns true; rules(): name required|string|max:100; slug nullable|string|max:120|unique:categories,slug; description nullable|string; is_active nullable|boolean.",
+
+    "Create app/Http/Requests/Admin/UpdateCategoryRequest.php: same rules but slug unique rule uses ->ignore($this->route('category')) to skip current record.",
+
+    "Create app/Http/Controllers/Admin/CategoryController.php: index(Request $request) — query Category with subcategoriesCount() and productsCount() loadCount, optionally search name via $request->search, paginate(15)->appends(request()->query()); create() — return view; store(StoreCategoryRequest $request) — merge slug if empty via Str::slug, Category::create(), redirect to index with success flash; edit(Category $category) — return view; update(UpdateCategoryRequest $request, Category $category) — update, redirect; destroy(Category $category) — check $category->subcategories()->exists() and redirect with error if true, else delete and redirect; toggleActive(Category $category) — $category->update(['is_active'=>!$category->is_active]), redirect back.",
+
+    "Create resources/views/admin/categories/index.blade.php: extends layouts.admin; table with columns Name, Slug, Subcategories, Products, Status, Actions; search form GET with ?search= input; per-row toggle-active POST form (button shows Active/Inactive); edit link; delete POST form with @method('DELETE') and confirm dialog; paginate links.",
+
+    "Create resources/views/admin/categories/create.blade.php and edit.blade.php: form with name, slug (auto-filled via JS on name blur if empty), description textarea, is_active checkbox; @error() validation messages under each field.",
+
+    "Create app/Http/Requests/Admin/StoreSubcategoryRequest.php: category_id required|exists:categories,id; name required|string|max:100; slug nullable|string|max:120 + Rule::unique('subcategories')->where('category_id',$this->input('category_id')); description nullable|string; is_active nullable|boolean.",
+
+    "Create app/Http/Requests/Admin/UpdateSubcategoryRequest.php: same + ignore current via ->ignore($this->route('subcategory')).",
+
+    "Create app/Http/Controllers/Admin/SubcategoryController.php: index(Request $request) — filter by $request->category_id if set, paginate(15); create() — pass all categories; store(StoreSubcategoryRequest $request); edit(Subcategory $subcategory) — pass categories + current subcategory; update(UpdateSubcategoryRequest $request, Subcategory $subcategory); destroy(Subcategory $subcategory) — block if products exist; toggleActive(Subcategory $subcategory); byCategory(Category $category) — return response()->json($category->subcategories()->where('is_active',true)->select('id','name')->get()).",
+
+    "Create resources/views/admin/subcategories/index.blade.php: table with category filter select (GET form), pagination, edit/delete/toggle; resources/views/admin/subcategories/create.blade.php: category select (populated from all categories), name, slug, description, is_active; resources/views/admin/subcategories/edit.blade.php: same.",
+
+    "Add Category and Subcategory routes to the admin group in routes/web.php: Route::resource('categories', CategoryController::class); Route::post('categories/{category}/toggle-active', [CategoryController::class,'toggleActive'])->name('categories.toggleActive'); Route::resource('subcategories', SubcategoryController::class); Route::post('subcategories/{subcategory}/toggle-active', [SubcategoryController::class,'toggleActive'])->name('subcategories.toggleActive'); Route::get('subcategories-by-category/{category}', [SubcategoryController::class,'byCategory'])->name('subcategories.byCategory').",
+
+    "Add slug auto-fill JS and category→name→slug JS to create/edit blade views using @push('scripts'): on name input blur, if slug field is empty, set slug field value to name value converted to lowercase hyphenated (simple replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,''))."
+  ],
+  "acceptance_criteria": [
+    "GET /admin/login returns 200 (unauthenticated)",
+    "POST /admin/login with admin@banglapuzzle.com/password redirects to /admin/dashboard",
+    "POST /admin/login with non-admin user (is_admin=false) redirects back with error",
+    "GET /admin/categories without auth redirects to /admin/login",
+    "GET /admin/categories with admin auth returns 200",
+    "POST /admin/categories creates a category and redirects with success flash",
+    "DELETE /admin/categories/{id} with subcategories present returns error",
+    "DELETE /admin/categories/{id} with no subcategories deletes and redirects",
+    "GET /admin/subcategories-by-category/{id} returns JSON array of {id,name}",
+    "POST /admin/subcategories creates subcategory under correct category",
+    "php artisan route:list shows all admin routes"
+  ],
+  "verification": [
+    "php artisan route:list --path=admin",
+    "php artisan test --filter AuthTest",
+    "php artisan test --filter CategoryCrudTest",
+    "php artisan test --filter SubcategoryCrudTest"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

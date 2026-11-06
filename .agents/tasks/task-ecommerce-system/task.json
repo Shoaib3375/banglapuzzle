@@ -1,0 +1,7 @@
+{
+  "task_id": "task-ecommerce-system",
+  "task_description": "Build a complete Laravel 13 e-commerce management system with admin CRUD for categories, subcategories, and products; a public storefront; authentication; image handling; PHPUnit tests; and deployment documentation.",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004", "FEAT-005"],
+  "blocked_reason": null
+}

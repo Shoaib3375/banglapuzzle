@@ -1,0 +1,38 @@
+{
+  "id": "FEAT-005",
+  "type": "feat",
+  "description": "PHPUnit Feature Tests + README + VPS Deployment docs. Depends on all prior FEATs. Tests use SQLite in-memory (phpunit.xml already configured) + RefreshDatabase + Storage::fake('public'). This FEAT is independent of the storefront FEAT-004 in code but must come last so all routes and controllers exist.",
+  "status": "pending",
+  "steps": [
+    "Create tests/Feature/Admin/AuthTest.php (uses RefreshDatabase): test_admin_login_page_loads() — GET /admin/login asserts 200; test_admin_can_login() — create User with is_admin=true, POST /admin/login with correct creds, assertRedirect(route('admin.dashboard')); test_non_admin_cannot_login() — create User with is_admin=false, POST /admin/login, assert redirect back not to dashboard (check session has error or stays on login); test_wrong_password_rejected() — POST /admin/login wrong password, assertSessionHasErrors or assert redirect back; test_admin_can_logout() — actingAs(admin), POST /admin/logout, assertRedirect(route('admin.login')); test_admin_routes_require_auth() — GET /admin/categories without auth, assertRedirect(route('admin.login')).",
+
+    "Create tests/Feature/Admin/CategoryCrudTest.php (uses RefreshDatabase): setUp creates admin User. Tests: index_accessible_to_admin(); create_page_loads(); store_creates_category_with_slug() — POST with name, assert category in DB with correct slug; store_auto_generates_slug_if_omitted(); update_modifies_category(); destroy_removes_category(); cannot_destroy_category_with_subcategories() — create subcategory, try delete, assert redirect with error; toggle_active_flips_status(); search_filters_results() — create 2 categories, search one name, assert only matching one in response.",
+
+    "Create tests/Feature/Admin/SubcategoryCrudTest.php (uses RefreshDatabase): setUp creates admin User and a category. Tests: index_returns_200(); filter_by_category(); create_page_loads(); store_creates_subcategory(); composite_slug_unique_within_category() — two subcategories in different categories can share same slug but same category cannot; byCategory_returns_json() — GET /admin/subcategories-by-category/{id} asserts JSON structure; cannot_destroy_subcategory_with_products(); toggle_active_flips_status().",
+
+    "Create tests/Feature/Admin/ProductCrudTest.php (uses RefreshDatabase + Storage::fake('public')): setUp creates admin User, category, subcategory. Tests: index_returns_200(); create_page_loads(); store_creates_product_with_image() — UploadedFile::fake()->image('product.jpg',800,800), POST, assert product in DB, assert Storage::disk('public')->exists('products/'.$product->image); update_without_new_image_preserves_existing_image(); update_with_new_image_replaces_and_deletes_old() — assert old path deleted, new path exists; destroy_deletes_product_and_image(); new_price_greater_than_old_price_fails_validation(); subcategory_from_wrong_category_fails_validation(); toggle_active_flips_status(); search_filters_products(); filter_by_category_filters_products().",
+
+    "Create tests/Feature/StorefrontTest.php (uses RefreshDatabase): setUp creates active category, active subcategory, active product. Tests: home_page_returns_200(); home_page_does_not_show_inactive_product() — create inactive product, GET /, assert inactive product name not in response; category_page_returns_200_for_active_category(); category_page_returns_404_for_inactive_category(); category_page_returns_404_for_nonexistent_category(); subcategory_page_returns_200_for_active_subcategory(); subcategory_page_returns_404_for_inactive_subcategory(); subcategory_page_returns_404_when_subcategory_belongs_to_different_category(); product_page_returns_200_for_active_product(); product_page_returns_404_for_inactive_product(); product_page_returns_404_when_category_is_inactive(); product_page_returns_404_when_subcategory_is_inactive(); product_page_shows_discount_percentage_when_applicable() — create product with old_price=1000, new_price=800, GET product page, assert '20%' or 'OFF' in response.",
+
+    "Write README.md at project root: sections: Project Overview (e-commerce management system for BanglaPuzzle assignment), Tech Stack (Laravel 13.40.0, PHP 8.4, MySQL 8.0.43, Tailwind CSS v4, Vite, PHPUnit 12), Laravel version rationale (PHP 8.4 fully supports Laravel 13; no downgrade required), Local Setup (step-by-step: clone, composer install, cp .env.example .env, php artisan key:generate, configure DB in .env, php artisan migrate:fresh --seed, php artisan storage:link, npm install, npm run build, php artisan serve), Admin Login (http://localhost:8000/admin/login, email: admin@banglapuzzle.com, password: password), Features list (all 4.1–4.6 items), Running Tests (php artisan test), Notes (never commit .env to git).",
+
+    "Write VPS_DEPLOYMENT.md at project root: Prerequisites (Ubuntu 22.04, Nginx 1.24+, PHP 8.4-FPM with extensions: mbstring, xml, curl, zip, mysql, bcmath, intl, gd, pdo, tokenizer, fileinfo, openssl, ctype, json, pcre, phar, dom, filter, hash, session, simplexml, spl, xmlreader, xmlwriter, iconv; MySQL 8.0, Composer 2, Node.js 20+, npm); Step-by-step: git clone, composer install --optimize-autoloader --no-dev, cp .env.example .env (set APP_ENV=production APP_DEBUG=false APP_KEY generate, DB creds), php artisan key:generate, php artisan migrate --force, php artisan storage:link, npm install, npm run build, chown -R www-data:www-data storage bootstrap/cache, chmod -R 775 storage bootstrap/cache; Nginx vhost config snippet (server block, root to /public, try_files, php-fpm fastcgi pass to unix:/run/php/php8.4-fpm.sock); PHP-FPM pool config note; systemctl restart nginx php8.4-fpm; Optional: php artisan config:cache && php artisan route:cache && php artisan view:cache for production."
+  ],
+  "acceptance_criteria": [
+    "php artisan test exits 0 with all tests passing (0 failures, 0 errors)",
+    "README.md exists at project root with all required sections",
+    "VPS_DEPLOYMENT.md exists at project root with Nginx config snippet",
+    "Tests for Auth, Category, Subcategory, Product, Storefront all pass independently",
+    "Storage::fake('public') correctly isolates file operations in product tests"
+  ],
+  "verification": [
+    "php artisan test",
+    "php artisan test --filter AuthTest",
+    "php artisan test --filter CategoryCrudTest",
+    "php artisan test --filter SubcategoryCrudTest",
+    "php artisan test --filter ProductCrudTest",
+    "php artisan test --filter StorefrontTest"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

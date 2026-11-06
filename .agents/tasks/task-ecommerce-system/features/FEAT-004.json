@@ -1,0 +1,44 @@
+{
+  "id": "FEAT-004",
+  "type": "feat",
+  "description": "Public Storefront (routes, controller, Blade views) + SEO meta tags. Depends on FEAT-001 (models) and FEAT-003 (storage:link, placeholder). Independent of FEAT-002/003 in terms of routes, but requires models and seeded data to test properly.",
+  "status": "pending",
+  "steps": [
+    "Create resources/views/layouts/storefront.blade.php: clean HTML skeleton; @vite(['resources/css/app.css','resources/js/app.js']); header with site logo ('BanglaPuzzle Shop') and navigation showing all active categories as links; responsive hamburger menu (CSS-only or minimal JS); footer with copyright; @yield('content'); SEO slots: @yield('meta_title','BanglaPuzzle Shop'), @yield('meta_description'), @yield('og_tags'); <title>@yield('meta_title')</title>, <meta name='description' content='@yield('meta_description')'>, OG tags rendered via @yield('og_tags').",
+
+    "Create resources/views/storefront/partials/product-card.blade.php: accepts $product variable; card showing thumbnail (Storage::disk('public')->url($product->image) or placeholder), product name, old price with strikethrough if > new_price, new price, discount badge (e.g. '15% OFF') when applicable, link to route('storefront.product', $product->slug).",
+
+    "Create app/Http/Controllers/StorefrontController.php with these methods:\n  home(): fetch all active categories with subcategory count (withCount); fetch latest 8 active products where category.is_active=true and subcategory.is_active=true (use whereHas for both); return view('storefront.home', compact('categories','products')).\n  category(string $slug): Category::where('slug',$slug)->where('is_active',true)->firstOrFail() — if not found, abort(404); fetch active subcategories of this category; fetch active products in this category where subcategory is also active (whereHas('subcategory',fn($q)=>$q->where('is_active',true))), paginate(12); return view('storefront.category').\n  subcategory(string $categorySlug, string $subcategorySlug): find active category by categorySlug or abort(404); find active subcategory by subcategorySlug within that category or abort(404); paginate(12) active products; return view('storefront.subcategory').\n  product(string $slug): Product::where('slug',$slug)->where('is_active',true)->whereHas('category',fn($q)=>$q->where('is_active',true))->whereHas('subcategory',fn($q)=>$q->where('is_active',true))->firstOrFail() or abort(404); fetch 4 related products from same subcategory (exclude current); return view('storefront.product').",
+
+    "Create resources/views/storefront/home.blade.php: extends layouts.storefront; @section('content'): hero banner div (slate-800 bg, white text, tagline); category cards grid (responsive 2-4 cols); 'Latest Products' heading; products grid using @include('storefront.partials.product-card'); empty state message if no products. @section('meta_title','BanglaPuzzle Shop — Home').",
+
+    "Create resources/views/storefront/category.blade.php: extends layouts.storefront; @section('meta_title',$category->name.' — BanglaPuzzle Shop'); category name + description; subcategory pills (links to subcategory routes); products grid with product cards; {{ $products->links() }} pagination; empty state if no products.",
+
+    "Create resources/views/storefront/subcategory.blade.php: extends layouts.storefront; @section('meta_title',$subcategory->name.' — '.$subcategory->category->name); subcategory name, breadcrumb (Home > Category > Subcategory); description; products grid; pagination; empty state.",
+
+    "Create resources/views/storefront/product.blade.php: extends layouts.storefront; @section('meta_title', $product->name); @section('meta_description', Str::limit($product->description,160)); @section('og_tags') block with og:title, og:description, og:image (Storage::disk('public')->url($product->image) if image), og:type=product; content: two-column layout (image left, details right on md+); product name; prices (old price struck-through, new price large); discount badge; breadcrumb (Home > Category > Subcategory > Product); description text; related products grid (max 4).",
+
+    "Register storefront routes in routes/web.php (public, no auth): Route::get('/', [StorefrontController::class,'home'])->name('home'); Route::get('/category/{slug}', [StorefrontController::class,'category'])->name('storefront.category'); Route::get('/category/{categorySlug}/{subcategorySlug}', [StorefrontController::class,'subcategory'])->name('storefront.subcategory'); Route::get('/product/{slug}', [StorefrontController::class,'product'])->name('storefront.product'). Remove the original welcome route.",
+
+    "Add active category list to storefront layout header using a View Composer. In app/Providers/AppServiceProvider.php, boot() method: View::composer('layouts.storefront', function($view){ $view->with('navCategories', \\App\\Models\\Category::where('is_active',true)->withCount('subcategories')->get()); });. Add use Illuminate\\Support\\Facades\\View; import."
+  ],
+  "acceptance_criteria": [
+    "GET / returns 200 (storefront home)",
+    "GET /category/{active-slug} returns 200",
+    "GET /category/{inactive-slug} returns 404",
+    "GET /category/{catSlug}/{subSlug} returns 200 for active subcategory",
+    "GET /category/{catSlug}/{subSlug} returns 404 when subcategory belongs to different category",
+    "GET /product/{active-slug} returns 200",
+    "GET /product/{inactive-product-slug} returns 404",
+    "GET /product/{slug} for product with inactive category returns 404",
+    "Product page shows discount percentage when old_price > new_price",
+    "php artisan test --filter StorefrontTest passes"
+  ],
+  "verification": [
+    "php artisan route:list --path=category",
+    "php artisan route:list --path=product",
+    "php artisan test --filter StorefrontTest"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
