@@ -1,405 +1,308 @@
-# Implementation Plan — BanglaPuzzle E-Commerce System
+# Implementation Plan — BanglaPuzzle Premium UI/UX Redesign
 
-> **Environment facts confirmed during exploration**
-> - Laravel 13.40.0, PHP 8.4.12, Composer 2.8.11
-> - MySQL 8.0.43 (DB: banglapuzzle, host 127.0.0.1:3306, user root)
-> - Tailwind CSS v4 already wired: `@tailwindcss/vite ^4.0.0` in package.json, `tailwindcss()` plugin in vite.config.js, `@import 'tailwindcss'` in app.css — **do NOT touch Tailwind config**
-> - Tests use SQLite in-memory (phpunit.xml), so no MySQL needed for tests
-> - SESSION_DRIVER=database, CACHE_STORE=database — sessions table already in users migration
-> - Laravel 13 uses `bootstrap/app.php` fluent API — no Http/Kernel.php exists; middleware registered via `->withMiddleware()`
-> - User model uses PHP 8 attribute syntax (`#[Fillable]`, `#[Hidden]`) — maintain that style
-> - phpunit.xml uses `DB_CONNECTION=sqlite`, `DB_DATABASE=:memory:` for test isolation
+> **FRONTEND-ONLY**: No controllers, models, routes, migrations, Form Requests, or tests are touched.  
+> **Tailwind v4** — no `tailwind.config.js`, no arbitrary bracket values.  
+> **55 existing tests must continue to pass.**
 
 ---
 
-## Phase 2 — Foundation and Database
+## Design System Decisions
 
-- [ ] 1. Install Node dependencies.
-      Run `npm install` from project root. No config changes needed — Tailwind v4 is already fully configured.
-      Files: `package-lock.json` (generated), `node_modules/` (generated)
-      Verify: `npm run build` exits 0 and produces `public/build/manifest.json`.
-
-- [ ] 2. Add `is_admin` column to the users table via a new migration.
-      Create `database/migrations/2025_01_01_000001_add_is_admin_to_users_table.php`.
-      Add `$table->boolean('is_admin')->default(false)->after('remember_token');` in `up()`, drop it in `down()`.
-      Files: `database/migrations/2025_01_01_000001_add_is_admin_to_users_table.php`
-      Verify: `php artisan migrate:fresh` runs without errors.
-
-- [ ] 3. Create the `categories` migration.
-      File: `database/migrations/2025_01_01_000002_create_categories_table.php`
-      Columns: id, name (string 100), slug (string 120, unique), description (nullable text), is_active (boolean default true), timestamps.
-      Files: `database/migrations/2025_01_01_000002_create_categories_table.php`
-      Verify: `php artisan migrate:fresh` runs without errors.
-
-- [ ] 4. Create the `subcategories` migration.
-      File: `database/migrations/2025_01_01_000003_create_subcategories_table.php`
-      Columns: id, category_id (unsignedBigInteger, FK → categories.id, onDelete restrict), name (string 100), slug (string 120), description (nullable text), is_active (boolean default true), timestamps.
-      Indexes: `$table->index('category_id')`, `$table->unique(['category_id', 'slug'])`.
-      Files: `database/migrations/2025_01_01_000003_create_subcategories_table.php`
-      Verify: `php artisan migrate:fresh` runs without errors.
-
-- [ ] 5. Create the `products` migration.
-      File: `database/migrations/2025_01_01_000004_create_products_table.php`
-      Columns: id, category_id (FK → categories, restrict), subcategory_id (FK → subcategories, restrict), name (string 150), slug (string, unique), description (text), image (nullable string), old_price (decimal 12,2 default 0), new_price (decimal 12,2 default 0), is_active (boolean default true), timestamps.
-      Indexes on: category_id, subcategory_id, is_active (separate `$table->index()` calls).
-      Files: `database/migrations/2025_01_01_000004_create_products_table.php`
-      Verify: `php artisan migrate:fresh` runs without errors.
-
-- [ ] 6. Update the User model to expose `is_admin`.
-      The model uses PHP 8 attribute `#[Fillable]` — change to traditional `protected $fillable` array that includes `is_admin`, OR add `is_admin` to the `#[Fillable]` attribute. Cast `is_admin` to boolean in the `casts()` method.
-      Decision: switch to the conventional `$fillable` / `$hidden` array properties so it's easier to maintain and extend; remove the `#[Fillable]` and `#[Hidden]` attributes.
-      Files: `app/Models/User.php`
-      Verify: `php artisan migrate:fresh` + `php artisan tinker --execute="echo App\Models\User::make(['is_admin'=>true])->is_admin ? 'ok' : 'fail';"` prints `ok`.
-
-- [ ] 7. Create the Category Eloquent model.
-      File: `app/Models/Category.php`
-      - `$fillable`: name, slug, description, is_active
-      - `casts()`: is_active → boolean
-      - Relationships: `hasMany(Subcategory::class)`, `hasMany(Product::class)`
-      - Local scope: `scopeActive($query)` → `$query->where('is_active', true)`
-      - Slug auto-generation: override `boot()` to listen to `creating`/`updating` — if slug empty, generate via `Str::slug($this->name)`, then ensure uniqueness by appending a numeric suffix if needed.
-      Files: `app/Models/Category.php`
-      Verify: `php artisan test --filter CategoryModelTest` (test created in Phase 10).
-
-- [ ] 8. Create the Subcategory Eloquent model.
-      File: `app/Models/Subcategory.php`
-      - `$fillable`: category_id, name, slug, description, is_active
-      - `casts()`: is_active → boolean, category_id → integer
-      - Relationships: `belongsTo(Category::class)`, `hasMany(Product::class)`
-      - Scope: `scopeActive($query)`
-      - Slug auto-generation same as Category, but uniqueness checked within same category_id.
-      Files: `app/Models/Subcategory.php`
-      Verify: `php artisan test --filter SubcategoryModelTest`.
-
-- [ ] 9. Create the Product Eloquent model.
-      File: `app/Models/Product.php`
-      - `$fillable`: category_id, subcategory_id, name, slug, description, image, old_price, new_price, is_active
-      - `casts()`: is_active → boolean, old_price → decimal:2, new_price → decimal:2
-      - Relationships: `belongsTo(Category::class)`, `belongsTo(Subcategory::class)`
-      - Scopes: `scopeActive($query)`, `scopeByCategory($query, $id)`, `scopeBySubcategory($query, $id)`
-      - Accessor: `getDiscountPercentageAttribute()` — computes discount % when old_price > new_price
-      - Slug auto-generation same pattern.
-      Files: `app/Models/Product.php`
-      Verify: `php artisan test --filter ProductModelTest`.
-
-- [ ] 10. Create CategoryFactory, SubcategoryFactory, ProductFactory.
-      Files: `database/factories/CategoryFactory.php`, `database/factories/SubcategoryFactory.php`, `database/factories/ProductFactory.php`
-      - CategoryFactory: realistic Bengali e-commerce category names (Electronics, Fashion, Home & Living, Beauty, Books, etc.); auto-generates slug; is_active true.
-      - SubcategoryFactory: requires category_id state; Bengali subcategory names; is_active true.
-      - ProductFactory: requires category_id + subcategory_id; realistic product names and descriptions; old_price 100–10000, new_price ≤ old_price; is_active true.
-      Verify: `php artisan tinker --execute="Database\Factories\CategoryFactory::new()->make()->toArray();"` returns valid array.
-
-- [ ] 11. Rewrite DatabaseSeeder.
-      File: `database/seeders/DatabaseSeeder.php`
-      Create: 1 admin user (name: "Admin", email: admin@banglapuzzle.com, password: password, is_admin: true, email_verified_at: now()).
-      Then 5 categories, for each category 3 subcategories, for each subcategory 5 products — all seeded with factories.
-      Call: `$this->call([CategorySeeder::class])` pattern, or inline everything in DatabaseSeeder.
-      Decision: inline in DatabaseSeeder to keep it simple; no extra seeder classes needed.
-      Files: `database/seeders/DatabaseSeeder.php`
-      Verify: `php artisan migrate:fresh --seed` exits 0; `php artisan tinker --execute="echo App\Models\Product::count();"` prints 75.
+- **Color palette**: white sidebar (`bg-white`), slate-50 content area (`bg-slate-50`), `blue-600` primary CTA replacing the existing `indigo-600`, `emerald-*` for active/success badges, `red-*` for inactive/danger badges.
+- **Cards**: `rounded-xl shadow-sm` throughout admin; `rounded-2xl shadow-sm` on storefront cards (matching existing product card convention).
+- **Admin layout**: Keep the sidebar-left + topbar pattern that already exists; upgrade sidebar from `bg-indigo-800` to `bg-white border-r border-slate-200` (light sidebar, premium feel).
+- **Storefront layout**: Keep existing structure; upgrade nav and hero sections.
+- **Components**: Seven shared Blade components extracted so every page can use them consistently.
+- **Flash keys**: `session('success')` / `session('error')` — exactly as existing layout.
+- **Image logic**: THREE-CASE: `str_starts_with($product->image, 'http') ? … : ($product->image ? Storage::disk('public')->url($product->image) : asset('images/placeholder.png'))`.
+- **`$navCategories`**: shared via `View::composer('layouts.storefront', …)` in `AppServiceProvider`. Available automatically in `layouts/storefront.blade.php` only.
 
 ---
 
-## Phase 3 — Authentication
+## Step-by-Step Plan
 
-- [ ] 12. Create Admin login Blade views.
-      Files: `resources/views/admin/auth/login.blade.php`
-      Full-page centered login form with email + password + remember me checkbox. Uses `@vite` for CSS. CSRF token included. Shows session error messages. Clean Tailwind v4 styling (indigo-600 primary button).
-      Verify: visual only at this stage; full auth test in Phase 10.
+- [ ] 1. **Create `resources/views/components/badge.blade.php`**  
+      A reusable inline badge. Accepts: `$variant` (emerald|red|blue|gray, default=gray), `$text` (string).  
+      Renders `<span>` with `rounded-full px-2.5 py-0.5 text-xs font-semibold` plus variant-specific color classes:  
+      - `emerald` → `bg-emerald-100 text-emerald-700`  
+      - `red` → `bg-red-100 text-red-700`  
+      - `blue` → `bg-blue-100 text-blue-700`  
+      - `gray` → `bg-slate-100 text-slate-600`  
+      Files: `resources/views/components/badge.blade.php`  
+      Verify: `php artisan test --compact` — all 55 tests still pass.
 
-- [ ] 13. Create Auth\AdminLoginController.
-      File: `app/Http/Controllers/Auth/AdminLoginController.php`
-      Methods: `showLoginForm()` → returns `admin.auth.login` view; `login(Request $request)` → validates email+password, uses `Auth::attempt(['email', 'password', 'is_admin' => true], $remember)`, regenerates session on success, redirects to `/admin/dashboard`; `logout()` → Auth::logout(), session invalidate+regenerate, redirect to `/admin/login`.
-      Decision: use `Auth::attempt()` with `is_admin => true` guard so non-admin accounts cannot log in even with correct credentials.
-      Files: `app/Http/Controllers/Auth/AdminLoginController.php`
-      Verify: `php artisan route:list` shows admin.login routes.
+- [ ] 2. **Create `resources/views/components/alert.blade.php`**  
+      Dismissible alert bar. Accepts: `$type` (success|error), `$message` (string).  
+      Uses Tailwind utility classes:  
+      - `success` → `bg-emerald-50 border border-emerald-200 text-emerald-800`  
+      - `error` → `bg-red-50 border border-red-200 text-red-700`  
+      Include a dismiss button (`×`) using plain JS (`this.closest('[role=alert]').remove()`).  
+      Files: `resources/views/components/alert.blade.php`  
+      Verify: `php artisan test --compact`
 
-- [ ] 14. Create EnsureIsAdmin middleware.
-      File: `app/Http/Middleware/EnsureIsAdmin.php`
-      Logic: if `!Auth::check() || !Auth::user()->is_admin` → redirect to `route('admin.login')` with error flash. Otherwise pass through.
-      Files: `app/Http/Middleware/EnsureIsAdmin.php`
-      Verify: class exists; registered in next step.
+- [ ] 3. **Create `resources/views/components/empty-state.blade.php`**  
+      Centered empty-state card. Accepts: `$title`, `$description`, `$icon` (SVG path data string), `$actionLabel` (optional), `$actionUrl` (optional).  
+      Renders: `bg-white rounded-2xl shadow-sm p-16 text-center` with icon circle, heading, text, and optional link button.  
+      Files: `resources/views/components/empty-state.blade.php`  
+      Verify: `php artisan test --compact`
 
-- [ ] 15. Register middleware and routes in bootstrap/app.php and routes/web.php.
-      In `bootstrap/app.php`, inside `->withMiddleware()`: register alias `'admin'` pointing to `App\Http\Middleware\EnsureIsAdmin::class`.
-      In `routes/web.php`:
-        - `Route::get('/admin/login', ...)->name('admin.login')`
-        - `Route::post('/admin/login', ...)->name('admin.login.post')->middleware('throttle:5,1')`
-        - `Route::post('/admin/logout', ...)->name('admin.logout')`
-        - `Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fn() => ...)` — initially just a dashboard stub
-      Files: `bootstrap/app.php`, `routes/web.php`
-      Verify: `php artisan route:list` shows all admin routes; `php artisan test --filter AuthTest`.
+- [ ] 4. **Create `resources/views/components/admin/stat-card.blade.php`**  
+      Dashboard stat tile. Accepts: `$label`, `$value`, `$subtext` (optional), `$iconPath` (SVG path d= string), `$iconBg` (Tailwind bg class, e.g. `bg-blue-100`), `$iconColor` (Tailwind text class, e.g. `text-blue-600`).  
+      Renders: `bg-white rounded-xl shadow-sm p-6 flex items-center gap-4` with icon circle + numeric value + sub-label.  
+      Files: `resources/views/components/admin/stat-card.blade.php`  
+      Verify: `php artisan test --compact`
 
----
+- [ ] 5. **Create `resources/views/components/admin/page-header.blade.php`**  
+      Page header row. Accepts: `$title`, `$createRoute` (optional named route string), `$createLabel` (optional, default `+ New`).  
+      Renders a `<div class="flex items-center justify-between mb-6">` with an `<h2>` title on the left and an optional blue CTA button (linking to `route($createRoute)`) on the right.  
+      Files: `resources/views/components/admin/page-header.blade.php`  
+      Verify: `php artisan test --compact`
 
-## Phase 4 — Category & Subcategory CRUD (Admin)
+- [ ] 6. **Create `resources/views/components/storefront/product-card.blade.php`**  
+      Storefront product card (replaces existing `storefront/partials/product-card.blade.php`).  
+      Accepts: `$product` (Product model).  
+      Must use THREE-CASE image logic:  
+      ```php
+      $imageUrl = str_starts_with($product->image, 'http')
+          ? $product->image
+          : ($product->image
+              ? Storage::disk('public')->url($product->image)
+              : asset('images/placeholder.png'));
+      ```  
+      Renders: hover lift card with aspect-square image, discount badge, category label, product name, price row with strikethrough old price, orange "View Details" CTA.  
+      Link: `route('storefront.product', $product->slug)`.  
+      Exact design tokens: `rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all`.  
+      Files: `resources/views/components/storefront/product-card.blade.php`  
+      Verify: `php artisan test --compact`
 
-- [ ] 16. Create Admin Category Form Requests.
-      Files: `app/Http/Requests/Admin/StoreCategoryRequest.php`, `app/Http/Requests/Admin/UpdateCategoryRequest.php`
-      Rules: name required|string|max:100; slug nullable|string|max:120|unique:categories,slug (UpdateRequest ignores current record via `$this->route('category')`); description nullable|string; is_active nullable|boolean.
-      Verify: `php artisan test --filter CategoryCrudTest`.
+- [ ] 7. **Create `resources/views/components/storefront/breadcrumb.blade.php`**  
+      Multi-level breadcrumb. Accepts: `$items` (array of `['label' => string, 'url' => string|null]`).  
+      Renders `<nav aria-label="Breadcrumb">` with `›` separators. Last item has no link and uses `text-white` or `text-gray-700` (caller controls via a `$dark` bool prop: default `false` = light on dark hero, `true` = dark on white bg).  
+      Files: `resources/views/components/storefront/breadcrumb.blade.php`  
+      Verify: `php artisan test --compact`
 
-- [ ] 17. Create Admin CategoryController (resource).
-      File: `app/Http/Controllers/Admin/CategoryController.php`
-      Methods: index (paginate 15, search by name), create, store (use StoreCategoryRequest, auto-slug if not supplied via `Str::slug()` + uniqueness loop), show (redirect to edit), edit, update (UpdateCategoryRequest, same slug logic), destroy (check no subcategories exist → if so redirect with error; otherwise delete).
-      Also add `toggleActive(Category $category)` method that flips `is_active` and redirects back.
-      Files: `app/Http/Controllers/Admin/CategoryController.php`
-      Verify: `php artisan test --filter CategoryCrudTest`.
+- [ ] 8. **Rewrite `resources/views/layouts/admin.blade.php`**  
+      Full rewrite. Keep all existing `@yield`/`@stack` slot names:  
+      - `@yield('title')` in `<title>`  
+      - `@yield('page-title')` in topbar h1  
+      - `@yield('content')` in `<main>`  
+      - `@stack('scripts')` before `</body>`  
+      New design:  
+      - Body: `bg-slate-50 min-h-screen flex`  
+      - Sidebar: `w-64 min-h-screen bg-white border-r border-slate-200 flex flex-col shrink-0`  
+      - Brand area: logo mark (blue-600 square icon) + "BanglaPuzzle" text + "Admin" chip  
+      - Nav links: active = `bg-blue-50 text-blue-700 font-semibold`, idle = `text-slate-600 hover:bg-slate-100`; keep all four routes: dashboard, categories, subcategories, products  
+      - Logout form at bottom: `POST admin.logout` + `@csrf`  
+      - Topbar: `bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between`  
+      - Topbar right: `Auth::user()->name` in a small avatar chip  
+      - Flash: use `<x-alert>` component for `session('success')` and `session('error')`  
+      - `@vite(['resources/css/app.css', 'resources/js/app.js'])` in `<head>`  
+      Files: `resources/views/layouts/admin.blade.php`  
+      Verify: `php artisan test --compact`
 
-- [ ] 18. Create Category admin Blade views.
-      Files:
-        - `resources/views/layouts/admin.blade.php` — full admin layout with sidebar nav (Dashboard, Categories, Subcategories, Products), topbar, flash messages section, `@stack('scripts')`
-        - `resources/views/admin/categories/index.blade.php` — table with search input, pagination, toggle active button, edit/delete links; shows subcategory count and product count per row
-        - `resources/views/admin/categories/create.blade.php`
-        - `resources/views/admin/categories/edit.blade.php`
-      Forms use `@csrf`. Delete uses a POST form with `@method('DELETE')`. All text escaped via `{{ }}`.
-      Verify: `php artisan test --filter CategoryCrudTest`.
+- [ ] 9. **Rewrite `resources/views/layouts/storefront.blade.php`**  
+      Full rewrite. Keep existing slot names:  
+      - `@yield('meta_title')`, `@yield('meta_description')`, `@yield('og_tags')`, `@yield('content')`, `@stack('scripts')`  
+      - `$navCategories` is available via `View::composer` — do not add it to the controller  
+      Preserve existing structure: topbar → sticky header → flash → `<main>` → footer.  
+      Upgrade: richer logo treatment, upgraded mobile hamburger, flash via `<x-alert>` component.  
+      Topbar: `bg-slate-900 text-slate-400 text-xs h-9`.  
+      Header: `bg-white shadow-sm sticky top-0 z-50`.  
+      Keep mobile toggle JS (`nav-toggle` / `mobile-nav` ids) identical so existing views work.  
+      Footer: three-column grid preserved.  
+      Files: `resources/views/layouts/storefront.blade.php`  
+      Verify: `php artisan test --compact`
 
-- [ ] 19. Create Admin Subcategory Form Requests.
-      Files: `app/Http/Requests/Admin/StoreSubcategoryRequest.php`, `app/Http/Requests/Admin/UpdateSubcategoryRequest.php`
-      Rules: category_id required|exists:categories,id; name required|string|max:100; slug nullable|string|max:120 + composite unique rule `Rule::unique('subcategories')->where('category_id', $this->input('category_id'))->ignore($this->route('subcategory'))`; description nullable; is_active boolean.
-      Verify: `php artisan test --filter SubcategoryCrudTest`.
+- [ ] 10. **Rewrite `resources/views/admin/auth/login.blade.php`**  
+       Standalone page (no layout extends — already standalone in current code).  
+       Keep: `@vite`, `POST admin.login.post`, `@csrf`, `email`/`password`/`remember` fields with `old()` values, `session('error')` + `$errors->any()` display.  
+       New design: full-height split layout or centered card.  
+       Use `<x-alert>` component for error messages.  
+       Error field styling: `@error('email') border-red-400 @enderror`.  
+       Files: `resources/views/admin/auth/login.blade.php`  
+       Verify: `php artisan test --compact`
 
-- [ ] 20. Create Admin SubcategoryController (resource).
-      File: `app/Http/Controllers/Admin/SubcategoryController.php`
-      Methods: index (paginate 15, filter by category_id query param), create, store, edit, update, destroy (block if has products), toggleActive.
-      Also: `byCategory(Category $category)` method at GET `/admin/subcategories-by-category/{category}` returning JSON array of `{id, name}` for AJAX dropdown.
-      Files: `app/Http/Controllers/Admin/SubcategoryController.php`
-      Verify: `php artisan test --filter SubcategoryCrudTest`.
+- [ ] 11. **Rewrite `resources/views/admin/dashboard/index.blade.php`**  
+       Extends `layouts.admin`. Sections: `title` = "Dashboard", `page-title` = "Dashboard".  
+       Variables: `$categoryCount`, `$activeCategoryCount`, `$subcategoryCount`, `$productCount`, `$activeProductCount`, `$inactiveProductCount` (all from DashboardController).  
+       Use `<x-admin.stat-card>` for each of the 5 stats.  
+       Stat card parameters:  
+       - Total Categories: `$label="Total Categories"`, `$value=$categoryCount`, `$subtext="$activeCategoryCount active"`, blue  
+       - Total Subcategories: `$label="Subcategories"`, `$value=$subcategoryCount`, purple  
+       - Total Products: `$label="Total Products"`, `$value=$productCount`, blue  
+       - Active Products: `$label="Active Products"`, `$value=$activeProductCount`, emerald  
+       - Inactive Products: `$label="Inactive Products"`, `$value=$inactiveProductCount`, red  
+       Add quick-action links row (→ Categories, → Products, → Subcategories).  
+       Files: `resources/views/admin/dashboard/index.blade.php`  
+       Verify: `php artisan test --compact`
 
-- [ ] 21. Create Subcategory admin Blade views.
-      Files:
-        - `resources/views/admin/subcategories/index.blade.php` — table with category filter dropdown, pagination, toggle/edit/delete
-        - `resources/views/admin/subcategories/create.blade.php` — category select, name, slug (auto-fill JS), description, is_active
-        - `resources/views/admin/subcategories/edit.blade.php`
-      Verify: `php artisan test --filter SubcategoryCrudTest`.
+- [ ] 12. **Rewrite `resources/views/admin/categories/index.blade.php`**  
+       Extends `layouts.admin`. Sections: `title` = "Categories", `page-title` = "Categories".  
+       Variables: `$categories` (paginated, has `subcategories_count`, `products_count`, `id`, `name`, `slug`, `is_active`).  
+       Use `<x-admin.page-header>` with `createRoute="admin.categories.create"` and `createLabel="+ New Category"`.  
+       Search form: `GET admin.categories.index` with `name=search` input and clear link when `request('search')` is set.  
+       Table: `bg-white rounded-xl shadow-sm overflow-hidden` — columns: #, Name, Slug, Subcategories, Products, Status, Actions.  
+       Status toggle: `POST admin.categories.toggleActive` + `@csrf` — use `<x-badge>` with `variant=emerald` for active, `variant=red` for inactive.  
+       Edit: `GET admin.categories.edit`.  
+       Delete: `POST admin.categories.destroy` + `@csrf` + `@method('DELETE')` + `onsubmit confirm()`.  
+       Empty state: `<x-empty-state>` component.  
+       Pagination: `$categories->links()` when `$categories->hasPages()`.  
+       Files: `resources/views/admin/categories/index.blade.php`  
+       Verify: `php artisan test --compact`
 
-- [ ] 22. Register Category and Subcategory routes inside the admin group.
-      In `routes/web.php` admin group:
-        - `Route::resource('categories', CategoryController::class)`
-        - `Route::post('categories/{category}/toggle-active', ...)->name('categories.toggleActive')`
-        - `Route::resource('subcategories', SubcategoryController::class)`
-        - `Route::post('subcategories/{subcategory}/toggle-active', ...)->name('subcategories.toggleActive')`
-        - `Route::get('subcategories-by-category/{category}', ...)->name('subcategories.byCategory')`
-      Files: `routes/web.php`
-      Verify: `php artisan route:list --path=admin` shows all CRUD routes.
+- [ ] 13. **Rewrite `resources/views/admin/categories/create.blade.php`**  
+       Extends `layouts.admin`. Sections: `title` = "Create Category", `page-title` = "Create Category".  
+       No variables from controller (create() passes nothing).  
+       Form: `POST admin.categories.store` + `@csrf`.  
+       Fields: `name` (required, maxlength=100), `slug` (optional, maxlength=120, font-mono), `description` (textarea, rows=3), `is_active` checkbox (default checked via `old('is_active', '1')`).  
+       All `@error` blocks with `border-red-400` styling.  
+       Back link → `admin.categories.index`.  
+       JS: `@push('scripts')` — slug autofill from name on blur (if slug is empty).  
+       Files: `resources/views/admin/categories/create.blade.php`  
+       Verify: `php artisan test --compact`
 
----
+- [ ] 14. **Rewrite `resources/views/admin/categories/edit.blade.php`**  
+       Extends `layouts.admin`. Sections: `title` = "Edit Category", `page-title` = "Edit Category".  
+       Variables: `$category` (Category model with `id`, `name`, `slug`, `description`, `is_active`).  
+       Form: `POST admin.categories.update($category)` + `@csrf` + `@method('PUT')`.  
+       Fields: same as create but pre-populated with `old('field', $category->field)`.  
+       Back link → `admin.categories.index`.  
+       JS: `@push('scripts')` — slug autofill on blur.  
+       Files: `resources/views/admin/categories/edit.blade.php`  
+       Verify: `php artisan test --compact`
 
-## Phase 5 — Product CRUD (Admin)
+- [ ] 15. **Rewrite `resources/views/admin/subcategories/index.blade.php`**  
+       Extends `layouts.admin`. Sections: `title` = "Subcategories", `page-title` = "Subcategories".  
+       Variables: `$subcategories` (paginated, with `category` eager-loaded), `$categories` (all, for filter dropdown).  
+       Use `<x-admin.page-header>` with `createRoute="admin.subcategories.create"`.  
+       Category filter: `<select name="category_id" onchange="this.form.submit()">` in GET form + clear link.  
+       Table: columns: #, Name, Category, Slug, Status, Actions.  
+       Status toggle: `POST admin.subcategories.toggleActive` + `@csrf` — use `<x-badge>`.  
+       Edit/Delete actions: same pattern as categories index.  
+       Empty state: `<x-empty-state>`.  
+       Pagination.  
+       Files: `resources/views/admin/subcategories/index.blade.php`  
+       Verify: `php artisan test --compact`
 
-- [ ] 23. Create Admin Product Form Requests.
-      Files: `app/Http/Requests/Admin/StoreProductRequest.php`, `app/Http/Requests/Admin/UpdateProductRequest.php`
-      Rules:
-        - category_id: required|exists:categories,id
-        - subcategory_id: required|exists:subcategories,id + custom rule that subcategory's category_id matches category_id input
-        - name: required|string|max:150
-        - slug: nullable|string|unique:products,slug (ignore current on update)
-        - description: required|string
-        - image: StoreRequest: required|image|mimes:jpeg,jpg,png,webp|max:2048; UpdateRequest: nullable|image|mimes:jpeg,jpg,png,webp|max:2048
-        - old_price: required|numeric|min:0
-        - new_price: required|numeric|min:0|lte:old_price
-        - is_active: nullable|boolean
-      Files: `app/Http/Requests/Admin/StoreProductRequest.php`, `app/Http/Requests/Admin/UpdateProductRequest.php`
-      Verify: `php artisan test --filter ProductCrudTest`.
+- [ ] 16. **Rewrite `resources/views/admin/subcategories/create.blade.php`**  
+       Extends `layouts.admin`. Sections: `title` = "Create Subcategory".  
+       Variables: `$categories` (all Category records ordered by name).  
+       Form: `POST admin.subcategories.store` + `@csrf`.  
+       Fields: `category_id` select (required), `name` (required, maxlength=100), `slug` (optional, maxlength=120), `description` (textarea), `is_active` checkbox (default checked).  
+       `old()` restoration on all fields.  
+       Back link → `admin.subcategories.index`.  
+       JS: slug autofill on blur.  
+       Files: `resources/views/admin/subcategories/create.blade.php`  
+       Verify: `php artisan test --compact`
 
-- [ ] 24. Create ProductImageService.
-      File: `app/Services/ProductImageService.php`
-      Methods:
-        - `store(UploadedFile $file): string` — generates unique filename via `Str::uuid().'.'.$file->extension()`, stores to `Storage::disk('public')->putFileAs('products', $file, $filename)`, returns stored path string.
-        - `delete(?string $path): void` — if path not null and `Storage::disk('public')->exists($path)`, deletes it.
-      Decision: centralise all image I/O here so controllers stay thin and tests can mock this service.
-      Files: `app/Services/ProductImageService.php`
-      Verify: `php artisan test --filter ProductImageServiceTest`.
+- [ ] 17. **Rewrite `resources/views/admin/subcategories/edit.blade.php`**  
+       Extends `layouts.admin`. Sections: `title` = "Edit Subcategory".  
+       Variables: `$subcategory` (Subcategory model), `$categories` (all Category records).  
+       Form: `POST admin.subcategories.update($subcategory)` + `@csrf` + `@method('PUT')`.  
+       Pre-populate all fields with `old('field', $subcategory->field)`.  
+       `category_id` uses `old('category_id', $subcategory->category_id)`.  
+       JS: slug autofill on blur.  
+       Files: `resources/views/admin/subcategories/edit.blade.php`  
+       Verify: `php artisan test --compact`
 
-- [ ] 25. Create Admin ProductController.
-      File: `app/Http/Controllers/Admin/ProductController.php`
-      - inject `ProductImageService` via constructor
-      - `index`: paginate 15, search by name, filter by category_id, subcategory_id, is_active; sort by newest (default) or price
-      - `create`: pass all categories (active); JS will load subcategories via AJAX
-      - `store`: use StoreProductRequest; call `$imageService->store()` FIRST, then create product; if DB create fails, call `$imageService->delete()` to clean up (wrap in try/catch or DB transaction)
-      - `edit`: pass all categories and current product's subcategories
-      - `update`: use UpdateProductRequest; if new image uploaded, call `$imageService->store()` to get new path, update product in DB transaction, THEN call `$imageService->delete($oldPath)` — only after successful DB update
-      - `destroy`: call `$imageService->delete()` only after successful DB delete (inside transaction or after `$product->delete()` confirms)
-      - `toggleActive`: flip is_active, redirect back
-      Files: `app/Http/Controllers/Admin/ProductController.php`
-      Verify: `php artisan test --filter ProductCrudTest`.
+- [ ] 18. **Rewrite `resources/views/admin/products/index.blade.php`**  
+       Extends `layouts.admin`. Sections: `title` = "Products".  
+       Variables: `$products` (paginated, with category + subcategory), `$categories`, `$subcategories` (may be empty collection).  
+       Filter form: `GET admin.products.index` — inputs: `search` text, `category_id` select, `subcategory_id` select, `is_active` select, `sort` select; Filter submit + Clear link when any filter is active; "+ New Product" CTA on right.  
+       Table: columns: Image (thumbnail), Name, Category, Subcategory, Old Price, New Price, Status, Actions.  
+       Image: THREE-CASE logic (same as existing).  
+       Status toggle: `POST admin.products.toggleActive` + `@csrf` + `<x-badge>`.  
+       Edit/Delete: same action patterns.  
+       Empty state: `<x-empty-state>`.  
+       Pagination.  
+       JS: `@push('scripts')` — AJAX subcategory filter reload on category_id change using `route('admin.subcategories.byCategory', ['category' => '__ID__'])` URL template (identical to existing JS).  
+       Files: `resources/views/admin/products/index.blade.php`  
+       Verify: `php artisan test --compact`
 
-- [ ] 26. Create Product admin Blade views.
-      Files:
-        - `resources/views/admin/products/index.blade.php` — table with filters (category, subcategory, status selects + search), paginated results with thumbnail, toggle/edit/delete
-        - `resources/views/admin/products/create.blade.php` — all fields, category+subcategory AJAX chained dropdowns, image preview JS
-        - `resources/views/admin/products/edit.blade.php` — same as create, current image shown with "keep/replace" pattern
-      The AJAX subcategory dropdown in create/edit calls `GET /admin/subcategories-by-category/{id}` (from Step 20) and populates the subcategory `<select>` via vanilla JS (no library needed).
-      Verify: `php artisan test --filter ProductCrudTest`.
+- [ ] 19. **Rewrite `resources/views/admin/products/create.blade.php`**  
+       Extends `layouts.admin`. Sections: `title` = "Create Product".  
+       Variables: `$categories` (all Category records ordered by name).  
+       Form: `POST admin.products.store` + `@csrf` + `enctype="multipart/form-data"`.  
+       Fields: `category_id` select, `subcategory_id` select (AJAX-populated), `name` (maxlength=150), `slug` (optional), `description` (textarea, rows=4), `image` file input (accept="image/jpeg,image/jpg,image/png,image/webp") with preview div (`id="image-preview-wrap"` hidden + `id="image-preview"`), `old_price` number, `new_price` number, `is_active` checkbox (default checked).  
+       All `old()` values and `@error` displays.  
+       Back link → `admin.products.index`.  
+       JS: `@push('scripts')` — three behaviors:  
+         1. AJAX subcategory load on category change (restore `old('category_id')` / `old('subcategory_id')` on page load)  
+         2. Slug autofill from name on blur (if slug empty)  
+         3. Image preview on file change (FileReader API)  
+       Files: `resources/views/admin/products/create.blade.php`  
+       Verify: `php artisan test --compact`
 
-- [ ] 27. Register Product routes and Admin Dashboard.
-      In `routes/web.php` admin group:
-        - `Route::resource('products', ProductController::class)`
-        - `Route::post('products/{product}/toggle-active', ...)->name('products.toggleActive')`
-        - `Route::get('dashboard', AdminDashboardController@index)->name('dashboard')`
-      Create `app/Http/Controllers/Admin/AdminDashboardController.php` with `index()` returning stats (total categories, subcategories, products, active/inactive counts) to `admin.dashboard` view.
-      Files: `routes/web.php`, `app/Http/Controllers/Admin/AdminDashboardController.php`, `resources/views/admin/dashboard.blade.php`
-      Verify: `php artisan route:list --path=admin` is complete; `php artisan test --filter AdminDashboardTest`.
+- [ ] 20. **Rewrite `resources/views/admin/products/edit.blade.php`**  
+       Extends `layouts.admin`. Sections: `title` = "Edit Product".  
+       Variables: `$product` (Product model), `$categories` (all), `$subcategories` (subcategories for current category).  
+       Form: `POST admin.products.update($product)` + `@csrf` + `@method('PUT')` + `enctype="multipart/form-data"`.  
+       Fields: same as create, pre-populated with `old('field', $product->field)`.  
+       Current image display: if `$product->image` exists, show existing thumbnail using THREE-CASE logic (`str_starts_with` check) + "upload to replace" hint text.  
+       JS: same three behaviors as create; initial category/subcategory loaded from server-rendered `$subcategories` collection (no AJAX on page load — only on category change).  
+       `currentCategoryId` / `currentSubcategoryId` Blade variables interpolated into JS for AJAX re-select.  
+       Files: `resources/views/admin/products/edit.blade.php`  
+       Verify: `php artisan test --compact`
 
-- [ ] 28. Run `php artisan storage:link` to create the public symlink.
-      This links `public/storage` → `storage/app/public` so uploaded images are web-accessible.
-      Files: `public/storage` symlink (created by command)
-      Verify: `php artisan storage:link` exits 0; `test -L public/storage` (or Windows equivalent).
+- [ ] 21. **Rewrite `resources/views/storefront/home.blade.php`**  
+       Extends `layouts.storefront`. Section: `meta_title` = "BanglaPuzzle Shop — Home". Section: `content`.  
+       Variables: `$categories` (Collection with `subcategories_count`), `$products` (Collection, max 8).  
+       Preserve all existing sections in order:  
+       1. Hero banner (gradient, CTA buttons, stats row)  
+       2. USP trust strip (4-column grid)  
+       3. Categories showcase (`id="categories"`) — grid with colored icon tiles using `<x-storefront.product-card>` NOT used here (categories only)  
+       4. Promotional banner  
+       5. Latest products (`id="products"`) — grid using `<x-storefront.product-card :product="$product">` for each item  
+       6. Empty state via `<x-empty-state>` if `$products->isEmpty()`  
+       7. Newsletter strip  
+       Use `Str::plural()` for subcategory count on category tiles.  
+       Files: `resources/views/storefront/home.blade.php`  
+       Verify: `php artisan test --compact`
 
----
+- [ ] 22. **Rewrite `resources/views/storefront/category.blade.php`**  
+       Extends `layouts.storefront`. Section: `meta_title` = `$category->name . ' — BanglaPuzzle Shop'`. Section: `content`.  
+       Variables: `$category` (active Category), `$subcategories` (active subcategories of that category), `$products` (paginated LengthAwarePaginator, 12 per page).  
+       Use `<x-storefront.breadcrumb :items="[['label'=>'Home','url'=>route('home')], ['label'=>$category->name,'url'=>null]]">`.  
+       Hero: gradient banner with inline breadcrumb and category title + optional description.  
+       Subcategory filter pills: `route('storefront.subcategory', [$category->slug, $subcategory->slug])`.  
+       Products grid: `<x-storefront.product-card :product="$product">` in grid; `$products->links()` if `hasPages()`.  
+       Empty state: `<x-empty-state>` with back-to-home link.  
+       Files: `resources/views/storefront/category.blade.php`  
+       Verify: `php artisan test --compact`
 
-## Phase 6 — Public Storefront
+- [ ] 23. **Rewrite `resources/views/storefront/subcategory.blade.php`**  
+       Extends `layouts.storefront`. Section: `meta_title` = `$subcategory->name . ' — ' . $subcategory->category->name`.  
+       Variables: `$category`, `$subcategory` (both active), `$products` (paginated).  
+       Use `<x-storefront.breadcrumb :items="[['label'=>'Home','url'=>route('home')], ['label'=>$category->name,'url'=>route('storefront.category',$category->slug)], ['label'=>$subcategory->name,'url'=>null]]">`.  
+       Hero: gradient banner with breadcrumb, subcategory title + optional description.  
+       Products grid: `<x-storefront.product-card :product="$product">` + pagination.  
+       Empty state: `<x-empty-state>` with back-to-category link using `route('storefront.category', $subcategory->category->slug)`.  
+       Files: `resources/views/storefront/subcategory.blade.php`  
+       Verify: `php artisan test --compact`
 
-- [ ] 29. Create StorefrontController.
-      File: `app/Http/Controllers/StorefrontController.php`
-      Methods:
-        - `home()`: fetch latest 8 active products (with active category+subcategory) + all active categories (with subcategory count); pass to `storefront.home`
-        - `category(string $slug)`: find active category by slug or abort(404); paginate 12 active products in that category whose subcategory is also active; pass to `storefront.category`
-        - `subcategory(string $categorySlug, string $subcategorySlug)`: find active category→find active subcategory (belongs to that category) or abort(404); paginate 12 products; pass to `storefront.subcategory`
-        - `product(string $slug)`: find active product whose category and subcategory are both active, or abort(404); fetch 4 related active products from same subcategory; pass to `storefront.product`
-      Files: `app/Http/Controllers/StorefrontController.php`
-      Verify: `php artisan test --filter StorefrontTest`.
-
-- [ ] 30. Create storefront Blade views and layout.
-      Files:
-        - `resources/views/layouts/storefront.blade.php` — clean white/slate layout, header with site name + category nav, footer, `@vite(['resources/css/app.css','resources/js/app.js'])`, SEO `<meta>` slot, OG slot
-        - `resources/views/storefront/home.blade.php` — hero banner, category cards grid, latest products grid with product cards (image, name, prices, discount badge)
-        - `resources/views/storefront/category.blade.php` — category header, subcategory pills, products grid, pagination
-        - `resources/views/storefront/subcategory.blade.php` — subcategory header, products grid, pagination
-        - `resources/views/storefront/product.blade.php` — large image, name, old/new price, discount %, category+subcategory breadcrumb, description, related products
-        - `resources/views/storefront/partials/product-card.blade.php` — reusable product card component
-      All views use `{{ }}` for output. No raw `{!! !!}` except for trusted pagination links.
-      Verify: `php artisan test --filter StorefrontTest`.
-
-- [ ] 31. Register storefront routes.
-      In `routes/web.php` (public, no auth middleware):
-        - `Route::get('/', [StorefrontController::class, 'home'])->name('home')`
-        - `Route::get('/category/{slug}', ...)->name('storefront.category')`
-        - `Route::get('/category/{categorySlug}/{subcategorySlug}', ...)->name('storefront.subcategory')`
-        - `Route::get('/product/{slug}', ...)->name('storefront.product')`
-      Move the old welcome route stub.
-      Files: `routes/web.php`
-      Verify: `php artisan route:list --path=category` shows storefront routes.
-
----
-
-## Phase 7 — UI/UX Polish
-
-- [ ] 32. Admin layout: sidebar, flash messages, active nav state.
-      `resources/views/layouts/admin.blade.php` (created in step 18) finalized with:
-        - Indigo-700 sidebar, white content area
-        - Active nav link highlight (compare current route name)
-        - `@if(session('success'))` / `@if(session('error'))` flash alert divs (auto-dismiss via JS)
-        - Breadcrumb slot
-        - `@stack('scripts')` before `</body>`
-      Files: `resources/views/layouts/admin.blade.php`
-      Verify: `npm run build` exits 0.
-
-- [ ] 33. Add placeholder image for products.
-      Store a simple SVG placeholder at `public/images/placeholder.png` (can be a minimal 1×1 PNG or a real placeholder).
-      In Product views, display `Storage::url($product->image)` when image exists, otherwise show `/images/placeholder.png`.
-      Files: `public/images/placeholder.png`, updated product views
-      Verify: product views render without broken images.
-
-- [ ] 34. JavaScript: AJAX subcategory chaining + slug auto-fill + image preview.
-      All JS is vanilla, placed in `@push('scripts')` blocks in relevant Blade views (no global app.js changes needed for admin features).
-        - Category select change → fetch `/admin/subcategories-by-category/{id}` → repopulate subcategory `<select>`
-        - Name input blur → auto-fill slug field (convert to slug format) if slug is empty
-        - Image file input change → show preview `<img>` below the input
-      Files: `resources/views/admin/products/create.blade.php`, `resources/views/admin/products/edit.blade.php`, `resources/views/admin/categories/create.blade.php`, `resources/views/admin/subcategories/create.blade.php`
-      Verify: `npm run build` exits 0.
-
----
-
-## Phase 8 — Security Hardening
-
-- [ ] 35. Security audit pass — no code changes if already correct.
-      Confirm in each controller/view:
-        - All forms have `@csrf`
-        - No raw `{!! !!}` on user-supplied data
-        - `$fillable` arrays are complete and do not allow `is_admin` mass-assignment on User (User's `$fillable` should NOT include `is_admin`; it's set directly in the seeder)
-        - All file uploads validated with `mimes:` not just extension
-        - DB queries use Eloquent (no raw SQL with user input)
-        - Login rate limiting is active (throttle:5,1 middleware on POST login)
-      Files: review only; fix any issues found in place
-      Verify: `php artisan test` — full suite passes.
-
----
-
-## Phase 9 — Documentation
-
-- [ ] 36. Write README.md.
-      File: `README.md`
-      Sections: Project overview, Tech stack (Laravel 13, PHP 8.4, MySQL 8, Tailwind v4), Local setup (clone → composer install → cp .env.example .env → key:generate → DB config → migrate:fresh --seed → storage:link → npm install → npm run build → php artisan serve), Admin credentials (admin@banglapuzzle.com / password), Feature list, Testing instructions.
-      Rationale for Laravel 13: PHP 8.4 fully supports it; no downgrade required.
-      Files: `README.md`
-      Verify: file exists and renders correctly on GitHub.
-
-- [ ] 37. Write VPS_DEPLOYMENT.md.
-      File: `VPS_DEPLOYMENT.md`
-      Sections: Prerequisites (Ubuntu 22.04, Nginx, PHP 8.4-FPM, MySQL 8, Composer, Node 20+), Step-by-step deployment (git clone, composer install --no-dev, .env production config, migrate --force, storage:link, npm install + build, Nginx vhost config snippet, PHP-FPM config, systemd restart, file permissions: storage + bootstrap/cache writable by www-data).
-      Files: `VPS_DEPLOYMENT.md`
-      Verify: file exists.
-
----
-
-## Phase 10 — Tests
-
-- [ ] 38. Create PHPUnit Feature tests for Authentication.
-      File: `tests/Feature/Admin/AuthTest.php`
-      Test cases (all use `RefreshDatabase`):
-        - `test_admin_login_page_loads` → GET /admin/login returns 200
-        - `test_admin_can_login_with_valid_credentials` → POST /admin/login with is_admin user → redirects to dashboard
-        - `test_non_admin_cannot_login` → POST /admin/login with is_admin=false user → redirected back with error
-        - `test_login_requires_valid_credentials` → wrong password → validation error
-        - `test_admin_can_logout` → authenticated POST /admin/logout → redirects to login
-        - `test_admin_routes_require_auth` → unauthenticated GET /admin/dashboard → redirects to login
-      Verify: `php artisan test --filter AuthTest` — all pass.
-
-- [ ] 39. Create PHPUnit Feature tests for Category CRUD.
-      File: `tests/Feature/Admin/CategoryCrudTest.php`
-      Test cases: index accessible to admin, create page loads, store creates record and slugifies name, update modifies record, delete removes record, cannot delete category with subcategories, toggle active flips status, search filters results.
-      All use `RefreshDatabase` + `actingAs($adminUser)`.
-      Verify: `php artisan test --filter CategoryCrudTest` — all pass.
-
-- [ ] 40. Create PHPUnit Feature tests for Subcategory CRUD.
-      File: `tests/Feature/Admin/SubcategoryCrudTest.php`
-      Test cases: same CRUD pattern; also test composite slug uniqueness, byCategory AJAX endpoint returns JSON, cannot delete subcategory with products.
-      Verify: `php artisan test --filter SubcategoryCrudTest` — all pass.
-
-- [ ] 41. Create PHPUnit Feature tests for Product CRUD.
-      File: `tests/Feature/Admin/ProductCrudTest.php`
-      Test cases: index, create, store with image (`Storage::fake('public')`, `UploadedFile::fake()->image()`), update with new image (old image deleted), update without new image (old image preserved), delete (image deleted), new_price > old_price rejected, subcategory belonging to wrong category rejected.
-      Use `Storage::fake('public')` in all image tests.
-      Verify: `php artisan test --filter ProductCrudTest` — all pass.
-
-- [ ] 42. Create PHPUnit Feature tests for Storefront.
-      File: `tests/Feature/StorefrontTest.php`
-      Test cases: home page loads (200), inactive product not shown on home, category page returns 200 for active category, category page returns 404 for inactive category, subcategory page returns 200, subcategory belonging to wrong category returns 404, product detail page returns 200, inactive product returns 404, product with inactive category returns 404, product with inactive subcategory returns 404.
-      Verify: `php artisan test --filter StorefrontTest` — all pass.
-
-- [ ] 43. Run full test suite and confirm all pass.
-      Command: `php artisan test`
-      Expected: all tests in tests/Feature/ and tests/Unit/ pass with 0 failures.
-      Files: none
-      Verify: `php artisan test` exits 0.
+- [ ] 24. **Rewrite `resources/views/storefront/product.blade.php`**  
+       Extends `layouts.storefront`. Sections: `meta_title`, `meta_description`, `og_tags`, `content`.  
+       Variables: `$product` (active Product with eager-loaded category + subcategory), `$related` (up to 4 active related products).  
+       `@section('og_tags')`: OG meta tags using THREE-CASE image logic for `og:image`.  
+       `@section('meta_description', Str::limit($product->description, 160))`.  
+       Main content in `@section('content')`:  
+       - `$imageUrl` computed with THREE-CASE logic  
+       - Breadcrumb via `<x-storefront.breadcrumb :items="[Home, $category, $subcategory, $product->name]">` (last item has `url=null`)  
+       - Two-column grid (md:5 columns: 2 image + 3 details)  
+       - Image column: `rounded-2xl overflow-hidden shadow-lg`, aspect-square  
+       - Details column: category/subcategory `<x-badge>` chips, `<h1>` product name, price block with strikethrough + discount badge, description (`whitespace-pre-line`), decorative "Add to Cart" button, trust icons  
+       - Related products section: `<x-storefront.product-card :product="$relatedProduct">` grid  
+       Files: `resources/views/storefront/product.blade.php`  
+       Verify: `php artisan test --compact`
 
 ---
 
-## Key implementation decisions (reference for coder)
+## Notes for the Implementer
 
-| Decision | Choice | Rationale |
-|---|---|---|
-| Laravel version | 13.40.0 (already installed) | PHP 8.4 is compatible; no downgrade needed |
-| Auth scaffolding | Manual controller + `Auth::attempt()` | No Breeze/Jetstream — keeps it minimal and auditable |
-| Admin guard | `is_admin` column on users table | Simplest single-guard approach; no need for separate guard config |
-| Slug generation | `Str::slug()` in model `boot()` via `creating`/`updating` events | Auto-generates; controller can still override; loops to ensure uniqueness |
-| Image storage | `Storage::disk('public')->putFileAs('products', $file, $uuid.$ext)` | Uses Laravel's abstraction; no path concatenation; `storage:link` required |
-| Image delete safety | Delete old image only after DB update succeeds | Prevents orphaned files or missing image references |
-| Tailwind | v4 already configured via Vite plugin | Do NOT add tailwind.config.js or run `npx tailwindcss init` |
-| Middleware registration | `->withMiddleware()` alias in `bootstrap/app.php` | Laravel 13 fluent API, no Http/Kernel.php |
-| Test DB | SQLite in-memory (phpunit.xml already set) | Fast; no MySQL needed for tests |
-| JS approach | Vanilla JS in `@push('scripts')` | No build step change; no npm package additions |
-| Money columns | `decimal(12,2)` | No floating point; safe for monetary values |
-| Storefront 404 | `abort(404)` for inactive items | Proper HTTP semantics; no redirect |
+1. **Tailwind v4 constraint**: No `tailwind.config.js`. Use only standard utility classes. No `[arbitrary-values]`. No `prose` class.  
+2. **`@use Illuminate\Support\Facades\Storage`**: Not needed in Blade — `Storage::disk('public')->url()` works in `@php` blocks; the `Storage` facade is always available.  
+3. **`Str::plural` / `Str::limit`**: These are Blade-available through the `Str` facade — but you must use the full `\Illuminate\Support\Str::` form in `@php` blocks, or `{{ Str::plural(...) }}` inline (the existing home.blade.php already uses `Str::plural` this way, confirming it resolves correctly in this app).  
+4. **Run `vendor/bin/pint --dirty --format agent` after each file**.  
+5. **Never run `npm run build` inline** — the plan step says to ask the user if assets are missing.  
+6. **Keep the existing partial** `storefront/partials/product-card.blade.php` in place (don't delete it) — the new component should coexist. Views that are rewritten will switch to `<x-storefront.product-card>`.  
+7. **Test run command**: `php artisan test --compact` from the workspace root.
