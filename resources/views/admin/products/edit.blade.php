@@ -116,8 +116,13 @@
 
                 @if ($product->image)
                     <div class="mb-3 flex items-center gap-3">
+                        @php
+                            $currentThumb = str_starts_with($product->image, 'http')
+                                ? $product->image
+                                : Storage::disk('public')->url($product->image);
+                        @endphp
                         <img
-                            src="{{ Storage::disk('public')->url($product->image) }}"
+                            src="{{ $currentThumb }}"
                             alt="{{ $product->name }}"
                             class="h-24 w-24 rounded-lg object-cover border border-gray-200"
                         >

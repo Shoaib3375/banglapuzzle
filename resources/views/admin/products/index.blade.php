@@ -112,19 +112,16 @@
                     <tr class="hover:bg-gray-50">
                         {{-- Thumbnail --}}
                         <td class="px-4 py-3">
-                            @if ($product->image)
-                                <img
-                                    src="{{ Storage::disk('public')->url($product->image) }}"
-                                    alt="{{ $product->name }}"
-                                    class="w-12 h-12 object-cover rounded-lg border border-gray-200"
-                                >
-                            @else
-                                <img
-                                    src="{{ asset('images/placeholder.png') }}"
-                                    alt="No image"
-                                    class="w-12 h-12 object-cover rounded-lg border border-gray-200 opacity-50"
-                                >
-                            @endif
+                            @php
+                                $thumb = $product->image
+                                    ? (str_starts_with($product->image, 'http') ? $product->image : Storage::disk('public')->url($product->image))
+                                    : asset('images/placeholder.png');
+                            @endphp
+                            <img
+                                src="{{ $thumb }}"
+                                alt="{{ $product->image ? $product->name : 'No image' }}"
+                                class="w-12 h-12 object-cover rounded-lg border border-gray-200 {{ $product->image ? '' : 'opacity-50' }}"
+                            >
                         </td>
 
                         <td class="px-4 py-3 font-medium text-gray-900 max-w-xs truncate">{{ $product->name }}</td>
