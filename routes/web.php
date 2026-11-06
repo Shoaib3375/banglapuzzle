@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\SubcategoryController;
 use App\Http\Controllers\Auth\AdminLoginController;
+use App\Http\Controllers\StorefrontController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -12,9 +13,10 @@ use Illuminate\Support\Facades\Route;
 | Public / storefront routes
 |--------------------------------------------------------------------------
 */
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [StorefrontController::class, 'home'])->name('home');
+Route::get('/category/{slug}', [StorefrontController::class, 'category'])->name('storefront.category');
+Route::get('/category/{categorySlug}/{subcategorySlug}', [StorefrontController::class, 'subcategory'])->name('storefront.subcategory');
+Route::get('/product/{slug}', [StorefrontController::class, 'product'])->name('storefront.product');
 
 /*
 |--------------------------------------------------------------------------
