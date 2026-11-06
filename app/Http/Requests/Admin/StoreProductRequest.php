@@ -16,15 +16,15 @@ class StoreProductRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'category_id'    => ['required', 'integer', 'exists:categories,id'],
+            'category_id' => ['required', 'integer', 'exists:categories,id'],
             'subcategory_id' => ['required', 'integer', 'exists:subcategories,id'],
-            'name'           => ['required', 'string', 'max:150'],
-            'slug'           => ['nullable', 'string', 'unique:products,slug'],
-            'description'    => ['required', 'string'],
-            'image'          => ['required', 'image', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
-            'old_price'      => ['required', 'numeric', 'min:0'],
-            'new_price'      => ['required', 'numeric', 'min:0', 'lte:old_price'],
-            'is_active'      => ['nullable', 'boolean'],
+            'name' => ['required', 'string', 'max:150'],
+            'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9]+(-[a-z0-9]+)*$/', 'unique:products,slug'],
+            'description' => ['required', 'string'],
+            'image' => ['required', 'image', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
+            'old_price' => ['required', 'numeric', 'min:0'],
+            'new_price' => ['required', 'numeric', 'min:0', 'lte:old_price'],
+            'is_active' => ['nullable', 'boolean'],
         ];
     }
 
@@ -35,7 +35,7 @@ class StoreProductRequest extends FormRequest
     {
         $validator->after(function (Validator $validator) {
             $subcategoryId = $this->input('subcategory_id');
-            $categoryId    = $this->input('category_id');
+            $categoryId = $this->input('category_id');
 
             if ($subcategoryId && $categoryId) {
                 $subcategory = Subcategory::find($subcategoryId);

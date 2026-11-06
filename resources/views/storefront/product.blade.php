@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('meta_title', $product->name)
+@section('meta_title', $product->name . ' | Bangla Puzzle')
 @section('meta_description', Str::limit($product->description, 160))
 
 @section('og_tags')
@@ -15,6 +15,7 @@
     @endphp
     <meta property="og:image" content="{{ $ogImage }}">
     <meta property="og:type" content="product">
+    <meta property="og:url" content="{{ route('storefront.product', $product->slug) }}">
 @endsection
 
 @section('content')
@@ -82,19 +83,69 @@
                     {{ $product->description }}
                 </div>
 
-                {{-- Add to Cart (decorative) --}}
-                <button
-                    type="button"
-                    class="mt-8 w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-2xl text-lg transition-colors"
-                >
-                    🛒 Add to Cart
-                </button>
+                {{-- Quantity selector + Add to Cart --}}
+                <div class="mt-8 space-y-4">
 
-                {{-- Decorative trust icons --}}
-                <div class="mt-6 flex items-center gap-6 text-xs text-gray-500">
-                    <span class="flex items-center gap-1">🚚 Free Delivery</span>
-                    <span class="flex items-center gap-1">🔒 Secure Payment</span>
-                    <span class="flex items-center gap-1">↩️ Easy Returns</span>
+                    {{-- Quantity --}}
+                    <div class="flex items-center gap-4">
+                        <span class="text-sm font-medium text-slate-700">Quantity</span>
+                        <div class="flex items-center border border-slate-300 rounded-xl overflow-hidden">
+                            <button
+                                type="button"
+                                id="qty-decrease"
+                                onclick="changeQty(-1)"
+                                class="w-11 h-11 flex items-center justify-center text-slate-600 hover:bg-slate-100 active:bg-slate-200 transition-colors text-xl font-light select-none"
+                                aria-label="Decrease quantity"
+                            >−</button>
+                            <input
+                                type="number"
+                                id="qty-input"
+                                value="1"
+                                min="1"
+                                max="99"
+                                readonly
+                                class="w-14 h-11 text-center text-base font-semibold text-slate-900 border-x border-slate-300 bg-white focus:outline-none"
+                                aria-label="Quantity"
+                            >
+                            <button
+                                type="button"
+                                id="qty-increase"
+                                onclick="changeQty(1)"
+                                class="w-11 h-11 flex items-center justify-center text-slate-600 hover:bg-slate-100 active:bg-slate-200 transition-colors text-xl font-light select-none"
+                                aria-label="Increase quantity"
+                            >+</button>
+                        </div>
+                    </div>
+
+                    {{-- Add to Cart button --}}
+                    <button
+                        type="button"
+                        id="add-to-cart-btn"
+                        onclick="addToCart()"
+                        class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-3.5 px-8 rounded-xl text-base transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        aria-label="Add to cart"
+                    >
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 5h13M7 13L5.4 5M10 21a1 1 0 100-2 1 1 0 000 2zm7 0a1 1 0 100-2 1 1 0 000 2z"/>
+                        </svg>
+                        Add to Cart
+                    </button>
+                </div>
+
+                {{-- Trust icons --}}
+                <div class="mt-6 grid grid-cols-3 gap-3">
+                    <div class="flex flex-col items-center text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                        <span class="text-lg mb-1">🚚</span>
+                        <span class="text-xs font-medium text-slate-600">Free Delivery</span>
+                    </div>
+                    <div class="flex flex-col items-center text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                        <span class="text-lg mb-1">🔒</span>
+                        <span class="text-xs font-medium text-slate-600">Secure Payment</span>
+                    </div>
+                    <div class="flex flex-col items-center text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                        <span class="text-lg mb-1">↩️</span>
+                        <span class="text-xs font-medium text-slate-600">Easy Returns</span>
+                    </div>
                 </div>
 
             </div>
@@ -114,3 +165,91 @@
 
     </div>
 @endsection
+
+@push('scripts')
+<script>
+    // ── Quantity control ──────────────────────────────────────────────────────
+    function changeQty(delta) {
+        const input = document.getElementById('qty-input');
+        const current = parseInt(input.value, 10) || 1;
+        const next = Math.max(1, Math.min(99, current + delta));
+        input.value = next;
+        document.getElementById('qty-decrease').style.opacity = next === 1 ? '0.4' : '1';
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('qty-decrease').style.opacity = '0.4';
+    });
+
+    // ── Add to Cart — wired to Cart store ────────────────────────────────────
+    function addToCart() {
+        const qty  = parseInt(document.getElementById('qty-input').value, 10) || 1;
+        const btn  = document.getElementById('add-to-cart-btn');
+
+        // Pull product data embedded by Blade
+        const product = {
+            id:       '{{ $product->id }}',
+            name:     {{ Js::from($product->name) }},
+            price:    {{ (float) $product->new_price }},
+            oldPrice: {{ (float) $product->old_price }},
+            image:    {{ Js::from($imageUrl) }},
+            url:      '{{ route('storefront.product', $product->slug) }}',
+            category: {{ Js::from($product->category->name ?? '') }},
+            qty:      qty,
+        };
+
+        Cart.add(product);
+
+        // Loading state
+        btn.disabled = true;
+        btn.innerHTML = `<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg> Adding…`;
+
+        setTimeout(function () {
+            btn.innerHTML = `<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> Added to Cart!`;
+            btn.classList.replace('bg-blue-600',       'bg-emerald-600');
+            btn.classList.replace('hover:bg-blue-700', 'hover:bg-emerald-700');
+            btn.disabled = false;
+
+            showToast(qty + ' × ' + product.name.substring(0, 40) + ' added to cart');
+
+            setTimeout(function () {
+                btn.innerHTML = `<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 5h13M7 13L5.4 5M10 21a1 1 0 100-2 1 1 0 000 2zm7 0a1 1 0 100-2 1 1 0 000 2z"/></svg> Add to Cart`;
+                btn.classList.replace('bg-emerald-600',       'bg-blue-600');
+                btn.classList.replace('hover:bg-emerald-700', 'hover:bg-blue-700');
+            }, 2500);
+        }, 500);
+    }
+
+    // ── Toast ─────────────────────────────────────────────────────────────────
+    function showToast(message) {
+        const existing = document.getElementById('cart-toast');
+        if (existing) existing.remove();
+
+        const toast = document.createElement('div');
+        toast.id = 'cart-toast';
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        toast.className = 'fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-slate-900 text-white text-sm font-medium px-5 py-3.5 rounded-xl shadow-2xl opacity-0 translate-y-4 transition-all duration-300';
+
+        const count = Cart.getCount();
+        toast.innerHTML = `
+            <svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>
+            <div>
+                <p>${message}</p>
+                <a href="{{ route('storefront.cart') }}" class="text-xs text-blue-400 hover:text-blue-300 underline">
+                    View Cart (${count} item${count !== 1 ? 's' : ''})
+                </a>
+            </div>`;
+        document.body.appendChild(toast);
+
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            toast.classList.remove('opacity-0', 'translate-y-4');
+        }));
+
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'translate-y-4');
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+</script>
+@endpush

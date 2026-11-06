@@ -7,16 +7,20 @@ use App\Http\Requests\Admin\StoreProductRequest;
 use App\Http\Requests\Admin\UpdateProductRequest;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductSlugHistory;
 use App\Models\Subcategory;
 use App\Services\ProductImageService;
+use App\Services\ProductSlugService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
-    public function __construct(private readonly ProductImageService $imageService)
-    {
-    }
+    public function __construct(
+        private readonly ProductImageService $imageService,
+        private readonly ProductSlugService $slugService,
+    ) {}
 
     /**
      * Display a paginated, filterable product listing.
@@ -27,7 +31,7 @@ class ProductController extends Controller
 
         // Search by name
         if ($search = $request->input('search')) {
-            $query->where('name', 'like', '%' . $search . '%');
+            $query->where('name', 'like', '%'.$search.'%');
         }
 
         // Filter by category
@@ -48,12 +52,12 @@ class ProductController extends Controller
         // Sorting
         $sort = $request->input('sort', 'newest');
         match ($sort) {
-            'price_asc'  => $query->orderBy('new_price', 'asc'),
+            'price_asc' => $query->orderBy('new_price', 'asc'),
             'price_desc' => $query->orderBy('new_price', 'desc'),
-            default      => $query->latest(),
+            default => $query->latest(),
         };
 
-        $products   = $query->paginate(15)->appends($request->query());
+        $products = $query->paginate(15)->appends($request->query());
         $categories = Category::orderBy('name')->get();
 
         // For subcategory filter dropdown (populated via JS on category change)
@@ -82,22 +86,24 @@ class ProductController extends Controller
         $data = $request->validated();
         $data['is_active'] = $request->boolean('is_active', true);
 
-        if (empty($data['slug'])) {
-            $data['slug'] = Product::generateUniqueSlug($data['name']);
+        // Resolve slug via service (always explicit — boot() auto-slug is removed)
+        if (! empty($data['slug'])) {
+            $normalized = $this->slugService->normalize($data['slug']);
+            $data['slug'] = $this->slugService->makeUnique($normalized, null);
+        } else {
+            $base = $this->slugService->generate($data['name']);
+            $data['slug'] = $this->slugService->makeUnique($base, null);
         }
 
         $imagePath = null;
 
         try {
             DB::transaction(function () use ($request, &$data, &$imagePath) {
-                // Store image first so we have the path for the DB record
                 $imagePath = $this->imageService->store($request->file('image'));
                 $data['image'] = $imagePath;
-
                 Product::create($data);
             });
         } catch (\Throwable $e) {
-            // Roll back the uploaded file if DB insert failed
             $this->imageService->delete($imagePath);
             throw $e;
         }
@@ -111,7 +117,7 @@ class ProductController extends Controller
      */
     public function edit(Product $product)
     {
-        $categories    = Category::orderBy('name')->get();
+        $categories = Category::orderBy('name')->get();
         $subcategories = Subcategory::where('category_id', $product->category_id)
             ->orderBy('name')
             ->get();
@@ -127,25 +133,38 @@ class ProductController extends Controller
         $data = $request->validated();
         $data['is_active'] = $request->boolean('is_active', false);
 
-        if (empty($data['slug'])) {
-            $data['slug'] = Product::generateUniqueSlug($data['name'], $product->id);
+        $oldSlug = $product->slug;
+        $newSlug = $oldSlug; // default: preserve
+
+        if (! empty($data['slug'])) {
+            $normalized = $this->slugService->normalize($data['slug']);
+            $resolved = $this->slugService->makeUnique($normalized, $product->id);
+            $newSlug = $resolved;
         }
+        // If slug field empty/absent → keep existing slug (no auto-regenerate from name)
+        $data['slug'] = $newSlug;
 
         $oldImagePath = $product->image;
         $newImagePath = null;
 
-        DB::transaction(function () use ($request, $product, &$data, &$newImagePath, $oldImagePath) {
+        DB::transaction(function () use ($request, $product, &$data, &$newImagePath, $oldImagePath, $oldSlug, $newSlug) {
             if ($request->hasFile('image')) {
-                $newImagePath  = $this->imageService->store($request->file('image'));
+                $newImagePath = $this->imageService->store($request->file('image'));
                 $data['image'] = $newImagePath;
             } else {
-                // Preserve existing image
                 unset($data['image']);
             }
 
             $product->update($data);
 
-            // Delete old image only AFTER successful DB update
+            // Record slug history if slug changed
+            if ($newSlug !== $oldSlug) {
+                ProductSlugHistory::create([
+                    'product_id' => $product->id,
+                    'old_slug' => $oldSlug,
+                ]);
+            }
+
             if ($newImagePath && $oldImagePath) {
                 $this->imageService->delete($oldImagePath);
             }
@@ -181,5 +200,26 @@ class ProductController extends Controller
 
         return redirect()->back()
             ->with('success', 'Product status updated.');
+    }
+
+    /**
+     * AJAX: check whether a slug is available.
+     */
+    public function checkSlug(Request $request): JsonResponse
+    {
+        $slug = $this->slugService->normalize((string) $request->input('slug', ''));
+        $productId = $request->input('product_id') ? (int) $request->input('product_id') : null;
+
+        if ($slug === '') {
+            return response()->json(['available' => false, 'suggestion' => '']);
+        }
+
+        $unique = $this->slugService->makeUnique($slug, $productId);
+        $available = ($unique === $slug);
+
+        return response()->json([
+            'available' => $available,
+            'suggestion' => $available ? null : $unique,
+        ]);
     }
 }

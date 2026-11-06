@@ -18,11 +18,8 @@ Route::get('/category/{slug}', [StorefrontController::class, 'category'])->name(
 Route::get('/category/{categorySlug}/{subcategorySlug}', [StorefrontController::class, 'subcategory'])->name('storefront.subcategory');
 Route::get('/product/{slug}', [StorefrontController::class, 'product'])->name('storefront.product');
 
-/*
-|--------------------------------------------------------------------------
-| Admin authentication routes (public)
-|--------------------------------------------------------------------------
-*/
+Route::get('/cart', [StorefrontController::class, 'cart'])->name('storefront.cart');
+Route::get('/checkout', [StorefrontController::class, 'checkout'])->name('storefront.checkout');
 Route::get('/admin/login', [AdminLoginController::class, 'showLoginForm'])
     ->name('admin.login');
 
@@ -62,6 +59,8 @@ Route::middleware(['auth', 'admin'])
             ->name('subcategories.byCategory');
 
         // Products
+        Route::get('products/check-slug', [ProductController::class, 'checkSlug'])
+            ->name('products.checkSlug');
         Route::resource('products', ProductController::class);
         Route::post('products/{product}/toggle-active', [ProductController::class, 'toggleActive'])
             ->name('products.toggleActive');

@@ -325,4 +325,30 @@ class ProductCrudTest extends TestCase
         $response->assertSee('In Cat One');
         $response->assertDontSee('In Cat Two');
     }
+
+    // -------------------------------------------------------------------------
+    // Check Slug endpoint
+    // -------------------------------------------------------------------------
+
+    public function test_check_slug_endpoint_returns_available_true(): void
+    {
+        $response = $this->actingAs($this->admin)
+            ->getJson(route('admin.products.checkSlug', ['slug' => 'unique-slug-xyz']));
+
+        $response->assertStatus(200);
+        $response->assertJson(['available' => true]);
+    }
+
+    public function test_check_slug_endpoint_returns_available_false(): void
+    {
+        Product::factory()
+            ->forSubcategory($this->category->id, $this->subcategory->id)
+            ->create(['slug' => 'already-taken-slug']);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson(route('admin.products.checkSlug', ['slug' => 'already-taken-slug']));
+
+        $response->assertStatus(200);
+        $response->assertJson(['available' => false]);
+    }
 }

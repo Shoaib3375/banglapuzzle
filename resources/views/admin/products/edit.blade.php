@@ -77,21 +77,44 @@
                 @enderror
             </div>
 
-            {{-- Slug --}}
-            <div class="mb-5">
-                <label for="slug" class="block text-sm font-medium text-slate-700 mb-1">
-                    Slug <span class="text-slate-400 text-xs">(auto-generated if empty)</span>
-                </label>
-                <input
-                    type="text"
-                    id="slug"
-                    name="slug"
-                    value="{{ old('slug', $product->slug) }}"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 @error('slug') border-red-400 @enderror"
-                >
+            {{-- SEO & URL Settings --}}
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 mb-5">
+                <h3 class="text-sm font-semibold text-slate-800 mb-1 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.102m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                    SEO &amp; URL Settings
+                </h3>
+                <p class="text-xs text-slate-500 mb-4">The public URL for this product. Changing the slug creates a 301 redirect from the old URL.</p>
+
+                <div class="mb-1.5 flex items-center justify-between">
+                    <label for="slug" class="text-sm font-medium text-slate-700">Product Slug</label>
+                    <span id="slug-mode-badge" class="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">Custom</span>
+                </div>
+                <div class="relative">
+                    <input type="text" id="slug" name="slug"
+                           value="{{ old('slug', $product->slug) }}"
+                           placeholder="product-url-slug"
+                           autocomplete="off"
+                           class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm font-mono text-slate-800 pr-28 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 @error('slug') border-red-400 @enderror">
+                    <div id="slug-status" class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs pointer-events-none"></div>
+                </div>
                 @error('slug')
-                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                 @enderror
+
+                <div id="slug-change-warning" class="hidden mt-2 flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                    <span>Changing this URL will create a 301 permanent redirect from the old URL to the new one.</span>
+                </div>
+
+                <div class="mt-3">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Current URL</p>
+                    <p class="text-sm font-mono text-slate-500 break-all">{{ url('/product/' . $product->slug) }}</p>
+                </div>
+
+                <div class="mt-3 bg-white border border-slate-200 rounded-lg px-4 py-3">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">New URL Preview</p>
+                    <p class="text-sm font-mono text-blue-600 break-all" id="url-preview">{{ url('/product/' . old('slug', $product->slug)) }}</p>
+                </div>
             </div>
 
             {{-- Description --}}
@@ -227,29 +250,78 @@
 <script>
 (function () {
     const byCategoryUrl  = '{{ route('admin.subcategories.byCategory', ['category' => '__ID__']) }}';
-    const categorySelect = document.getElementById('category_id');
-    const subSelect      = document.getElementById('subcategory_id');
-    const nameInput      = document.getElementById('name');
-    const slugInput      = document.getElementById('slug');
-    const imageInput     = document.getElementById('image');
-    const previewWrap    = document.getElementById('image-preview-wrap');
-    const previewImg     = document.getElementById('image-preview');
+    const checkSlugUrl   = '{{ route('admin.products.checkSlug') }}';
+    const baseProductUrl = '{{ url('/product/') }}';
+    const originalSlug   = '{{ $product->slug }}';
+    const productId      = '{{ $product->id }}';
+
+    const categorySelect    = document.getElementById('category_id');
+    const subSelect         = document.getElementById('subcategory_id');
+    const slugInput         = document.getElementById('slug');
+    const slugStatus        = document.getElementById('slug-status');
+    const urlPreview        = document.getElementById('url-preview');
+    const slugChangeWarning = document.getElementById('slug-change-warning');
+    const imageInput        = document.getElementById('image');
+    const previewWrap       = document.getElementById('image-preview-wrap');
+    const previewImg        = document.getElementById('image-preview');
 
     const currentCategoryId    = '{{ old('category_id', $product->category_id) }}';
     const currentSubcategoryId = '{{ old('subcategory_id', $product->subcategory_id) }}';
 
+    let slugCheckTimer = null;
+
+    function updatePreview(slugValue) {
+        urlPreview.textContent = baseProductUrl + '/' + (slugValue || '');
+    }
+
+    function showWarning(show) {
+        if (show) {
+            slugChangeWarning.classList.remove('hidden');
+        } else {
+            slugChangeWarning.classList.add('hidden');
+        }
+    }
+
+    // Slug changes on edit — name does NOT auto-update slug
+    slugInput.addEventListener('input', function () {
+        const slug = this.value;
+        updatePreview(slug);
+        showWarning(slug !== originalSlug && slug.trim() !== '');
+        clearTimeout(slugCheckTimer);
+    });
+
+    // Debounced availability check on blur
+    slugInput.addEventListener('blur', function () {
+        clearTimeout(slugCheckTimer);
+        const slug = this.value.trim();
+        if (!slug || slug === originalSlug) { slugStatus.innerHTML = ''; return; }
+        slugCheckTimer = setTimeout(function () {
+            slugStatus.innerHTML = '<span class="text-slate-400">Checking\u2026</span>';
+            fetch(checkSlugUrl + '?slug=' + encodeURIComponent(slug) + '&product_id=' + productId)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.available) {
+                        slugStatus.innerHTML = '<span class="text-emerald-600">\u2713 Available</span>';
+                    } else {
+                        slugStatus.innerHTML = '<span class="text-red-500">\u2717 Already taken</span>';
+                    }
+                })
+                .catch(function () { slugStatus.innerHTML = ''; });
+        }, 400);
+    });
+
+    // Category/subcategory
     categorySelect.addEventListener('change', function () {
         const catId = this.value;
         subSelect.innerHTML = '<option value="">— Select a subcategory —</option>';
         if (!catId) { return; }
-
         const url = byCategoryUrl.replace('__ID__', catId);
         fetch(url)
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 data.forEach(function (sub) {
-                    const opt       = document.createElement('option');
-                    opt.value       = sub.id;
+                    const opt = document.createElement('option');
+                    opt.value = sub.id;
                     opt.textContent = sub.name;
                     if (String(sub.id) === String(currentSubcategoryId) && String(catId) === String(currentCategoryId)) {
                         opt.selected = true;
@@ -259,25 +331,12 @@
             });
     });
 
-    nameInput.addEventListener('blur', function () {
-        if (slugInput.value.trim() !== '') { return; }
-        slugInput.value = this.value
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/(^-|-$)/g, '');
-    });
-
+    // Image preview
     imageInput.addEventListener('change', function () {
         const file = this.files[0];
-        if (!file) {
-            previewWrap.classList.add('hidden');
-            return;
-        }
-        const reader  = new FileReader();
-        reader.onload = function (e) {
-            previewImg.src = e.target.result;
-            previewWrap.classList.remove('hidden');
-        };
+        if (!file) { previewWrap.classList.add('hidden'); return; }
+        const reader = new FileReader();
+        reader.onload = function (e) { previewImg.src = e.target.result; previewWrap.classList.remove('hidden'); };
         reader.readAsDataURL(file);
     });
 }());

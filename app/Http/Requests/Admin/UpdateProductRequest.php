@@ -19,19 +19,21 @@ class UpdateProductRequest extends FormRequest
         $productId = $this->route('product')?->id ?? $this->route('product');
 
         return [
-            'category_id'    => ['required', 'integer', 'exists:categories,id'],
+            'category_id' => ['required', 'integer', 'exists:categories,id'],
             'subcategory_id' => ['required', 'integer', 'exists:subcategories,id'],
-            'name'           => ['required', 'string', 'max:150'],
-            'slug'           => [
+            'name' => ['required', 'string', 'max:150'],
+            'slug' => [
                 'nullable',
                 'string',
+                'max:255',
+                'regex:/^[a-z0-9]+(-[a-z0-9]+)*$/',
                 Rule::unique('products', 'slug')->ignore($productId),
             ],
-            'description'    => ['required', 'string'],
-            'image'          => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
-            'old_price'      => ['required', 'numeric', 'min:0'],
-            'new_price'      => ['required', 'numeric', 'min:0', 'lte:old_price'],
-            'is_active'      => ['nullable', 'boolean'],
+            'description' => ['required', 'string'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
+            'old_price' => ['required', 'numeric', 'min:0'],
+            'new_price' => ['required', 'numeric', 'min:0', 'lte:old_price'],
+            'is_active' => ['nullable', 'boolean'],
         ];
     }
 
@@ -42,7 +44,7 @@ class UpdateProductRequest extends FormRequest
     {
         $validator->after(function (Validator $validator) {
             $subcategoryId = $this->input('subcategory_id');
-            $categoryId    = $this->input('category_id');
+            $categoryId = $this->input('category_id');
 
             if ($subcategoryId && $categoryId) {
                 $subcategory = Subcategory::find($subcategoryId);
