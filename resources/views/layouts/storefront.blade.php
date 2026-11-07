@@ -84,6 +84,55 @@
 
                 {{-- Right icons --}}
                 <div class="hidden md:flex items-center gap-3">
+                    @guest
+                        <a href="{{ route('user.login') }}"
+                           class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">
+                            Sign In
+                        </a>
+                        <a href="{{ route('user.register') }}"
+                           class="inline-flex items-center px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors">
+                            Register
+                        </a>
+                    @else
+                        @if (! Auth::user()->is_admin)
+                        <div class="relative"
+                             onmouseenter="showDrop(this)"
+                             onmouseleave="hideDrop(this)">
+                            <button type="button"
+                                    class="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors">
+                                <span class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">
+                                    {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                                </span>
+                                <span class="text-sm font-medium text-slate-700 max-w-[120px] truncate">
+                                    {{ Str::limit(Auth::user()->name, 12) }}
+                                </span>
+                                <svg class="w-3.5 h-3.5 text-slate-400 transition-transform duration-150 drop-arrow"
+                                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                                    <path d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                            <div class="nav-dropdown"
+                                 style="display:none;position:absolute;top:100%;right:0;margin-top:4px;width:200px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.12);padding:6px 0;z-index:9999;">
+                                <a href="{{ route('storefront.profile') }}"
+                                   style="display:block;padding:8px 16px;font-size:13px;font-weight:600;color:#0f172a;text-decoration:none;border-bottom:1px solid #f1f5f9;margin-bottom:4px;"
+                                   onmouseover="this.style.background='#eff6ff';this.style.color='#2563eb'"
+                                   onmouseout="this.style.background='';this.style.color='#0f172a'">
+                                    My Profile
+                                </a>
+                                <form method="POST" action="{{ route('user.logout') }}">
+                                    @csrf
+                                    <button type="submit"
+                                            style="display:block;width:100%;text-align:left;padding:8px 16px;font-size:13px;color:#dc2626;text-decoration:none;border:none;background:none;cursor:pointer;"
+                                            onmouseover="this.style.background='#fef2f2'"
+                                            onmouseout="this.style.background=''">
+                                        Sign Out
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        @endif
+                    @endguest
+
                     <a href="{{ route('storefront.cart') }}"
                        class="relative p-2 text-slate-500 hover:text-blue-600 transition-colors rounded-lg hover:bg-slate-100"
                        aria-label="View cart">
@@ -153,6 +202,36 @@
                     @endif
                 </div>
                 @endforeach
+
+                {{-- Customer auth --}}
+                @guest
+                    <div class="border-t border-slate-100 mt-2 pt-2 space-y-0.5">
+                        <a href="{{ route('user.login') }}"
+                           class="block px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors">
+                            Sign In
+                        </a>
+                        <a href="{{ route('user.register') }}"
+                           class="block px-3 py-2 rounded-md text-sm font-semibold text-blue-600 hover:bg-blue-50 transition-colors">
+                            Register
+                        </a>
+                    </div>
+                @else
+                    @if (! Auth::user()->is_admin)
+                        <div class="border-t border-slate-100 mt-2 pt-2 space-y-0.5">
+                            <a href="{{ route('storefront.profile') }}"
+                               class="block px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors">
+                                My Profile
+                            </a>
+                            <form method="POST" action="{{ route('user.logout') }}">
+                                @csrf
+                                <button type="submit"
+                                        class="block w-full text-left px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors">
+                                    Sign Out
+                                </button>
+                            </form>
+                        </div>
+                    @endif
+                @endguest
 
                 {{-- Cart --}}
                 <div class="border-t border-slate-100 mt-2 pt-2">

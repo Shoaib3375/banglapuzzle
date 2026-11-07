@@ -5,6 +5,9 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\SubcategoryController;
 use App\Http\Controllers\Auth\AdminLoginController;
+use App\Http\Controllers\Auth\UserLoginController;
+use App\Http\Controllers\Auth\UserProfileController;
+use App\Http\Controllers\Auth\UserRegisterController;
 use App\Http\Controllers\StorefrontController;
 use Illuminate\Support\Facades\Route;
 
@@ -29,6 +32,30 @@ Route::post('/admin/login', [AdminLoginController::class, 'login'])
 
 Route::post('/admin/logout', [AdminLoginController::class, 'logout'])
     ->name('admin.logout');
+
+/*
+|--------------------------------------------------------------------------
+| Customer (storefront user) auth & profile routes
+|--------------------------------------------------------------------------
+*/
+// Guest-only customer auth routes
+Route::middleware('guest')->group(function () {
+    Route::get('/register', [UserRegisterController::class, 'showRegisterForm'])->name('user.register');
+    Route::post('/register', [UserRegisterController::class, 'register'])->name('user.register.post');
+
+    Route::get('/login', [UserLoginController::class, 'showLoginForm'])->name('user.login');
+    Route::post('/login', [UserLoginController::class, 'login'])->name('user.login.post')->middleware('throttle:5,1');
+});
+
+// Logout (requires an authenticated session)
+Route::post('/logout', [UserLoginController::class, 'logout'])->name('user.logout')->middleware('auth');
+
+// Customer-only profile routes
+Route::middleware(['auth', 'customer'])->group(function () {
+    Route::get('/profile', [UserProfileController::class, 'show'])->name('storefront.profile');
+    Route::post('/profile', [UserProfileController::class, 'update'])->name('storefront.profile.update');
+    Route::post('/profile/password', [UserProfileController::class, 'changePassword'])->name('storefront.profile.password');
+});
 
 /*
 |--------------------------------------------------------------------------

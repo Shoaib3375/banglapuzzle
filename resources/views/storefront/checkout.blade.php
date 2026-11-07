@@ -4,6 +4,7 @@
 @section('meta_description', 'Enter your delivery address and place your order.')
 
 @section('content')
+@php $authUser = Auth::user(); @endphp
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
     {{-- Breadcrumb --}}
@@ -69,6 +70,7 @@
                                 Full Name <span class="text-red-500">*</span>
                             </label>
                             <input type="text" id="full_name" name="full_name" autocomplete="name"
+                                   value="{{ old('full_name', $authUser?->name ?? '') }}"
                                    placeholder="Md Shoaib Islam"
                                    class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
                             <p class="hidden mt-1 text-xs text-red-500" data-error="full_name">Please enter your full name.</p>
@@ -78,6 +80,7 @@
                                 Phone Number <span class="text-red-500">*</span>
                             </label>
                             <input type="tel" id="phone" name="phone" autocomplete="tel"
+                                   value="{{ old('phone', $authUser?->phone ?? '') }}"
                                    placeholder="01XXXXXXXXX"
                                    class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
                             <p class="hidden mt-1 text-xs text-red-500" data-error="phone">Please enter a valid phone number.</p>
@@ -90,6 +93,7 @@
                             Email Address <span class="text-slate-400 font-normal text-xs">(optional)</span>
                         </label>
                         <input type="email" id="email" name="email" autocomplete="email"
+                               value="{{ old('email', $authUser?->email ?? '') }}"
                                placeholder="shoaib@example.com"
                                class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
                     </div>
@@ -100,6 +104,7 @@
                             Street Address <span class="text-red-500">*</span>
                         </label>
                         <input type="text" id="address" name="address" autocomplete="street-address"
+                               value="{{ old('address', $authUser?->address ?? '') }}"
                                placeholder="House 12, Road 5, Block C"
                                class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
                         <p class="hidden mt-1 text-xs text-red-500" data-error="address">Please enter your street address.</p>
@@ -112,6 +117,7 @@
                                 City / Area <span class="text-red-500">*</span>
                             </label>
                             <input type="text" id="city" name="city" autocomplete="address-level2"
+                                   value="{{ old('city', $authUser?->city ?? '') }}"
                                    placeholder="Mirpur, Dhaka"
                                    class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
                             <p class="hidden mt-1 text-xs text-red-500" data-error="city">Please enter your city.</p>
@@ -124,7 +130,7 @@
                                     class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white">
                                 <option value="">Select District</option>
                                 @foreach(['Dhaka','Chittagong','Sylhet','Rajshahi','Khulna','Barisal','Rangpur','Mymensingh','Gazipur','Narayanganj','Comilla','Jessore','Bogra','Dinajpur','Tangail','Faridpur','Noakhali','Cox\'s Bazar'] as $d)
-                                <option value="{{ $d }}">{{ $d }}</option>
+                                <option value="{{ $d }}" @selected($d === old('district', $authUser?->district ?? ''))>{{ $d }}</option>
                                 @endforeach
                             </select>
                             <p class="hidden mt-1 text-xs text-red-500" data-error="district">Please select your district.</p>
@@ -138,6 +144,7 @@
                                 Post Code
                             </label>
                             <input type="text" id="postcode" name="postcode" autocomplete="postal-code"
+                                   value="{{ old('postcode', $authUser?->postcode ?? '') }}"
                                    placeholder="1216"
                                    class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
                         </div>

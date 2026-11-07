@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\EnsureIsAdmin;
+use App\Http\Middleware\EnsureIsCustomer;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,11 +15,20 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'admin' => \App\Http\Middleware\EnsureIsAdmin::class,
+            'admin' => EnsureIsAdmin::class,
+            'customer' => EnsureIsCustomer::class,
         ]);
 
-        // Redirect unauthenticated users to the admin login page
-        $middleware->redirectGuestsTo(fn () => route('admin.login'));
+        // Redirect unauthenticated users to the login page that matches the area
+        // they were trying to reach: admin/* paths go to the admin login, any
+        // other guarded path (e.g. the customer profile) goes to the customer login.
+        $middleware->redirectGuestsTo(function (Request $request) {
+            return $request->is('admin/*') ? route('admin.login') : route('user.login');
+        });
+
+        // Send already-authenticated users to the storefront home instead of the
+        // default /home when they hit a guest-only page (e.g. /login or /register).
+        $middleware->redirectUsersTo(fn () => route('home'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Subcategory;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -174,5 +175,80 @@ class StorefrontTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('20%');
         $response->assertSee('OFF');
+    }
+
+    public function test_user_can_register(): void
+    {
+        $response = $this->post(route('user.register.post'), [
+            'name' => 'Test Customer',
+            'email' => 'customer@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $response->assertRedirect(route('storefront.profile'));
+        $this->assertAuthenticated();
+        $this->assertDatabaseHas('users', [
+            'email' => 'customer@example.com',
+            'is_admin' => false,
+        ]);
+    }
+
+    public function test_user_can_login(): void
+    {
+        $user = User::factory()->create(['is_admin' => false]);
+
+        $response = $this->post(route('user.login.post'), [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $response->assertRedirect(route('home'));
+        $this->assertAuthenticated();
+    }
+
+    public function test_guest_cannot_access_profile(): void
+    {
+        $response = $this->get(route('storefront.profile'));
+
+        $response->assertRedirect(route('user.login'));
+    }
+
+    public function test_authenticated_user_can_view_profile(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'Jane Customer',
+            'is_admin' => false,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('storefront.profile'));
+
+        $response->assertStatus(200);
+        $response->assertSee('Personal Information');
+        $response->assertSee('Jane Customer');
+    }
+
+    public function test_user_can_update_profile(): void
+    {
+        $user = User::factory()->create(['is_admin' => false]);
+
+        $response = $this->actingAs($user)->post(route('storefront.profile.update'), [
+            'name' => 'Updated Name',
+            'email' => $user->email,
+            'phone' => '01700000000',
+            'address' => 'House 1',
+            'city' => 'Dhaka',
+            'district' => 'Dhaka',
+            'postcode' => '1207',
+        ]);
+
+        $response->assertStatus(302);
+        $response->assertSessionHas('success', 'Profile updated successfully.');
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'name' => 'Updated Name',
+            'phone' => '01700000000',
+            'district' => 'Dhaka',
+        ]);
     }
 }
