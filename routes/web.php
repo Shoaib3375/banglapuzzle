@@ -41,7 +41,7 @@ Route::post('/admin/logout', [AdminLoginController::class, 'logout'])
 // Guest-only customer auth routes
 Route::middleware('guest')->group(function () {
     Route::get('/register', [UserRegisterController::class, 'showRegisterForm'])->name('user.register');
-    Route::post('/register', [UserRegisterController::class, 'register'])->name('user.register.post');
+    Route::post('/register', [UserRegisterController::class, 'register'])->name('user.register.post')->middleware('throttle:10,1');
 
     Route::get('/login', [UserLoginController::class, 'showLoginForm'])->name('user.login');
     Route::post('/login', [UserLoginController::class, 'login'])->name('user.login.post')->middleware('throttle:5,1');

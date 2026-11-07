@@ -251,4 +251,44 @@ class StorefrontTest extends TestCase
             'district' => 'Dhaka',
         ]);
     }
+
+    /** Admin account cannot log in through the customer login route. */
+    public function test_admin_cannot_login_via_customer_route(): void
+    {
+        $admin = \App\Models\User::factory()->create([
+            'email'    => 'admin-security@test.com',
+            'password' => bcrypt('password'),
+            'is_admin' => true,
+        ]);
+
+        $response = $this->post(route('user.login.post'), [
+            'email'    => 'admin-security@test.com',
+            'password' => 'password',
+        ]);
+
+        // Should not be authenticated (or redirected back with error) —
+        // the customer login guard requires is_admin = false.
+        $this->assertFalse($this->isAuthenticated() && auth()->user()?->id === $admin->id && !auth()->user()?->is_admin);
+        // Ensure the admin is NOT placed in the session as a logged-in customer.
+        if (auth()->check()) {
+            $this->assertTrue((bool) auth()->user()->is_admin === false || auth()->user()->id !== $admin->id);
+        }
+    }
+
+    /** Regular customer cannot access the admin dashboard. */
+    public function test_customer_cannot_access_admin_dashboard(): void
+    {
+        $customer = \App\Models\User::factory()->create([
+            'email'    => 'customer-sec@test.com',
+            'password' => bcrypt('password'),
+            'is_admin' => false,
+        ]);
+
+        $response = $this->actingAs($customer)
+            ->get(route('admin.dashboard'));
+
+        // Should be redirected away — customer is not an admin.
+        $response->assertRedirect();
+        $this->assertNotEquals(route('admin.dashboard'), $response->headers->get('Location'));
+    }
 }
