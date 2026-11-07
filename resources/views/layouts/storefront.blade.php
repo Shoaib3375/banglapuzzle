@@ -37,42 +37,42 @@
                         Home
                     </a>
 
-                    {{-- Each category with hover dropdown showing its subcategories --}}
+                    {{-- Each category with JS-powered hover dropdown --}}
                     @foreach ($navCategories as $category)
-                    <div class="relative group">
+                    <div class="relative"
+                         onmouseenter="showDrop(this)"
+                         onmouseleave="hideDrop(this)">
+
                         {{-- Category trigger --}}
                         <a href="{{ route('storefront.category', $category->slug) }}"
-                           class="flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors
-                               {{ request()->routeIs('storefront.category') && request()->route('slug') === $category->slug
-                                   ? 'text-blue-600'
-                                   : 'text-slate-700 group-hover:text-blue-600' }}">
+                           class="flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:text-blue-600 transition-colors">
                             {{ $category->name }}
                             @if($category->subcategories->isNotEmpty())
-                            <svg class="w-3 h-3 mt-0.5 opacity-50 group-hover:opacity-100 transition-transform duration-150 group-hover:rotate-180"
+                            <svg class="w-3 h-3 mt-0.5 text-slate-400 transition-transform duration-150 drop-arrow"
                                  fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
                                 <path d="M19 9l-7 7-7-7"/>
                             </svg>
                             @endif
                         </a>
 
-                        {{-- Dropdown — only render when category has subcategories --}}
+                        {{-- Dropdown panel --}}
                         @if($category->subcategories->isNotEmpty())
-                        <div class="absolute top-full left-0 mt-1 w-52 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50
-                                    opacity-0 invisible translate-y-1
-                                    group-hover:opacity-100 group-hover:visible group-hover:translate-y-0
-                                    transition-all duration-150 ease-out">
-                            {{-- "All [category]" link at top --}}
+                        <div class="nav-dropdown"
+                             style="display:none;position:absolute;top:100%;left:0;margin-top:4px;width:220px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.12);padding:6px 0;z-index:9999;">
+                            {{-- "All [category]" --}}
                             <a href="{{ route('storefront.category', $category->slug) }}"
-                               class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-blue-50 hover:text-blue-600 transition-colors border-b border-slate-100 mb-1">
+                               style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;font-size:13px;font-weight:600;color:#0f172a;border-bottom:1px solid #f1f5f9;margin-bottom:4px;text-decoration:none;"
+                               onmouseover="this.style.background='#eff6ff';this.style.color='#2563eb'"
+                               onmouseout="this.style.background='';this.style.color='#0f172a'">
                                 All {{ $category->name }}
-                                <svg class="w-3.5 h-3.5 ml-auto text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path d="M9 5l7 7-7 7"/>
-                                </svg>
+                                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
                             </a>
                             {{-- Subcategory links --}}
                             @foreach($category->subcategories as $sub)
                             <a href="{{ route('storefront.subcategory', [$category->slug, $sub->slug]) }}"
-                               class="block px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                               style="display:block;padding:8px 16px;font-size:13px;color:#475569;text-decoration:none;"
+                               onmouseover="this.style.background='#f8fafc';this.style.color='#0f172a'"
+                               onmouseout="this.style.background='';this.style.color='#475569'">
                                 {{ $sub->name }}
                             </a>
                             @endforeach
@@ -138,7 +138,7 @@
                     </button>
 
                     @if($category->subcategories->isNotEmpty())
-                    <div class="hidden pl-4 pb-1 space-y-0.5">
+                    <div style="display:none" class="pl-4 pb-1 space-y-0.5">
                         <a href="{{ route('storefront.category', $category->slug) }}"
                            class="block px-3 py-1.5 rounded-md text-sm font-semibold text-slate-800 hover:bg-blue-50 hover:text-blue-600 transition-colors">
                             All {{ $category->name }}
@@ -268,25 +268,39 @@
 
     {{-- Minimal JS to toggle the mobile navigation --}}
     <script>
+        // Mobile nav toggle
         (function () {
             var toggle = document.getElementById('nav-toggle');
             var menu   = document.getElementById('mobile-nav');
-            if (! toggle || ! menu) return;
-
+            if (!toggle || !menu) return;
             toggle.addEventListener('click', function () {
-                var isOpen = ! menu.classList.contains('hidden');
+                var isOpen = !menu.classList.contains('hidden');
                 menu.classList.toggle('hidden');
-                toggle.setAttribute('aria-expanded', String(! isOpen));
+                toggle.setAttribute('aria-expanded', String(!isOpen));
             });
         })();
+
+        // Desktop category dropdown
+        function showDrop(wrapper) {
+            var drop  = wrapper.querySelector('.nav-dropdown');
+            var arrow = wrapper.querySelector('.drop-arrow');
+            if (drop)  drop.style.display  = 'block';
+            if (arrow) arrow.style.transform = 'rotate(180deg)';
+        }
+        function hideDrop(wrapper) {
+            var drop  = wrapper.querySelector('.nav-dropdown');
+            var arrow = wrapper.querySelector('.drop-arrow');
+            if (drop)  drop.style.display  = 'none';
+            if (arrow) arrow.style.transform = '';
+        }
 
         // Mobile category accordion toggle
         function toggleMobileCat(btn) {
             var submenu = btn.nextElementSibling;
             var arrow   = btn.querySelector('svg');
             if (!submenu) return;
-            var isOpen = !submenu.classList.contains('hidden');
-            submenu.classList.toggle('hidden', isOpen);
+            var isOpen = submenu.style.display !== 'none' && submenu.style.display !== '';
+            submenu.style.display = isOpen ? 'none' : 'block';
             if (arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
         }
 
