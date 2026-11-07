@@ -162,5 +162,26 @@
             </button>
         </form>
     </div>
+
+    {{-- My Orders --}}
+    <div class="mt-6 bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+            <div>
+                <h2 class="text-base font-semibold text-slate-900">My Orders</h2>
+                <p class="text-sm text-slate-500 mt-1">
+                    You have placed
+                    <span class="font-medium text-slate-900">{{ $user->orders()->count() }}</span>
+                    {{ Str::plural('order', $user->orders()->count()) }}.
+                </p>
+            </div>
+            <a href="{{ route('orders.index') }}"
+               class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                View My Orders
+            </a>
+        </div>
+    </div>
 </div>
 @endsection

@@ -2,12 +2,14 @@
 
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\SubcategoryController;
 use App\Http\Controllers\Auth\AdminLoginController;
 use App\Http\Controllers\Auth\UserLoginController;
 use App\Http\Controllers\Auth\UserProfileController;
 use App\Http\Controllers\Auth\UserRegisterController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\StorefrontController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +25,10 @@ Route::get('/product/{slug}', [StorefrontController::class, 'product'])->name('s
 
 Route::get('/cart', [StorefrontController::class, 'cart'])->name('storefront.cart');
 Route::get('/checkout', [StorefrontController::class, 'checkout'])->name('storefront.checkout');
+
+// Public order routes (guests allowed)
+Route::post('/orders', [OrderController::class, 'store'])->name('orders.store')->middleware('throttle:10,1');
+Route::get('/orders/{order:order_number}', [OrderController::class, 'show'])->name('orders.show');
 Route::get('/admin/login', [AdminLoginController::class, 'showLoginForm'])
     ->name('admin.login');
 
@@ -55,6 +61,8 @@ Route::middleware(['auth', 'customer'])->group(function () {
     Route::get('/profile', [UserProfileController::class, 'show'])->name('storefront.profile');
     Route::post('/profile', [UserProfileController::class, 'update'])->name('storefront.profile.update');
     Route::post('/profile/password', [UserProfileController::class, 'changePassword'])->name('storefront.profile.password');
+
+    Route::get('/my-orders', [OrderController::class, 'myOrders'])->name('orders.index');
 });
 
 /*
@@ -91,4 +99,9 @@ Route::middleware(['auth', 'admin'])
         Route::resource('products', ProductController::class);
         Route::post('products/{product}/toggle-active', [ProductController::class, 'toggleActive'])
             ->name('products.toggleActive');
+
+        // Orders
+        Route::resource('orders', AdminOrderController::class)->only(['index', 'show']);
+        Route::post('orders/{order}/status', [AdminOrderController::class, 'updateStatus'])
+            ->name('orders.updateStatus');
     });

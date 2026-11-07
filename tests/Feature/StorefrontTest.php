@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\Subcategory;
 use App\Models\User;
@@ -255,20 +256,20 @@ class StorefrontTest extends TestCase
     /** Admin account cannot log in through the customer login route. */
     public function test_admin_cannot_login_via_customer_route(): void
     {
-        $admin = \App\Models\User::factory()->create([
-            'email'    => 'admin-security@test.com',
+        $admin = User::factory()->create([
+            'email' => 'admin-security@test.com',
             'password' => bcrypt('password'),
             'is_admin' => true,
         ]);
 
         $response = $this->post(route('user.login.post'), [
-            'email'    => 'admin-security@test.com',
+            'email' => 'admin-security@test.com',
             'password' => 'password',
         ]);
 
         // Should not be authenticated (or redirected back with error) —
         // the customer login guard requires is_admin = false.
-        $this->assertFalse($this->isAuthenticated() && auth()->user()?->id === $admin->id && !auth()->user()?->is_admin);
+        $this->assertFalse($this->isAuthenticated() && auth()->user()?->id === $admin->id && ! auth()->user()?->is_admin);
         // Ensure the admin is NOT placed in the session as a logged-in customer.
         if (auth()->check()) {
             $this->assertTrue((bool) auth()->user()->is_admin === false || auth()->user()->id !== $admin->id);
@@ -278,8 +279,8 @@ class StorefrontTest extends TestCase
     /** Regular customer cannot access the admin dashboard. */
     public function test_customer_cannot_access_admin_dashboard(): void
     {
-        $customer = \App\Models\User::factory()->create([
-            'email'    => 'customer-sec@test.com',
+        $customer = User::factory()->create([
+            'email' => 'customer-sec@test.com',
             'password' => bcrypt('password'),
             'is_admin' => false,
         ]);
@@ -290,5 +291,88 @@ class StorefrontTest extends TestCase
         // Should be redirected away — customer is not an admin.
         $response->assertRedirect();
         $this->assertNotEquals(route('admin.dashboard'), $response->headers->get('Location'));
+    }
+
+    // ----------------------------------------------------------------
+    // Order system tests
+    // ----------------------------------------------------------------
+
+    public function test_guest_can_place_order(): void
+    {
+        $product = Product::factory()
+            ->forSubcategory($this->category->id, $this->subcategory->id)
+            ->create(['is_active' => true, 'new_price' => 500, 'old_price' => 600]);
+
+        $response = $this->postJson(route('orders.store'), [
+            'full_name' => 'Test Buyer',
+            'phone' => '01712345678',
+            'address' => 'House 1, Road 1',
+            'city' => 'Dhaka',
+            'district' => 'Dhaka',
+            'payment_method' => 'cod',
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 2],
+            ],
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+        $this->assertDatabaseHas('orders', [
+            'full_name' => 'Test Buyer',
+            'total' => 1080, // 500*2=1000 + 80 delivery
+        ]);
+    }
+
+    public function test_authenticated_user_order_linked_to_account(): void
+    {
+        $customer = User::factory()->create(['is_admin' => false]);
+        $product = Product::factory()
+            ->forSubcategory($this->category->id, $this->subcategory->id)
+            ->create(['is_active' => true, 'new_price' => 300, 'old_price' => 400]);
+
+        $response = $this->actingAs($customer)->postJson(route('orders.store'), [
+            'full_name' => 'Auth Buyer',
+            'phone' => '01712345679',
+            'address' => 'House 2, Road 2',
+            'city' => 'Dhaka',
+            'district' => 'Dhaka',
+            'payment_method' => 'cod',
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 1],
+            ],
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+
+        $order = Order::where('full_name', 'Auth Buyer')->first();
+        $this->assertNotNull($order);
+        $this->assertEquals($customer->id, $order->user_id);
+    }
+
+    public function test_order_confirmation_page_loads(): void
+    {
+        $order = Order::factory()->create();
+
+        $response = $this->get(route('orders.show', $order->order_number));
+
+        $response->assertStatus(200);
+    }
+
+    public function test_my_orders_page_requires_auth(): void
+    {
+        $response = $this->get(route('orders.index'));
+
+        $response->assertRedirect(route('user.login'));
+    }
+
+    public function test_my_orders_page_shows_user_orders(): void
+    {
+        $customer = User::factory()->create(['is_admin' => false]);
+        Order::factory()->count(2)->forUser($customer->id)->create();
+
+        $response = $this->actingAs($customer)->get(route('orders.index'));
+
+        $response->assertStatus(200);
     }
 }

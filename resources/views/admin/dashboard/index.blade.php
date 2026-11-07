@@ -50,6 +50,22 @@
             iconPath="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
         />
 
+        <x-admin.stat-card
+            label="Total Orders"
+            :value="$orderCount"
+            iconBg="bg-blue-100"
+            iconColor="text-blue-600"
+            iconPath="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+        />
+
+        <x-admin.stat-card
+            label="Pending Orders"
+            :value="$pendingOrderCount"
+            iconBg="bg-orange-100"
+            iconColor="text-orange-600"
+            iconPath="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+
     </div>
 
     {{-- Quick Links --}}

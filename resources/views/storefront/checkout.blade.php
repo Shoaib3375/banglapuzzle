@@ -60,7 +60,7 @@
                     </div>
                 </div>
 
-                <form id="checkout-form" class="p-6 space-y-5" novalidate>
+                <form id="checkout-form" class="p-6 space-y-5" method="POST" action="{{ route('orders.store') }}" novalidate>
                     @csrf
 
                     {{-- Full name + phone --}}
@@ -173,7 +173,7 @@
                         <p class="text-sm font-medium text-slate-700 mb-2">Payment Method</p>
                         <div class="space-y-2">
                             <label class="flex items-center gap-3 p-3.5 border border-slate-200 rounded-xl cursor-pointer hover:border-blue-400 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50 transition">
-                                <input type="radio" name="payment" value="cod" checked class="accent-blue-600">
+                                <input type="radio" name="payment_method" value="cod" checked class="accent-blue-600">
                                 <div>
                                     <p class="text-sm font-medium text-slate-900">Cash on Delivery</p>
                                     <p class="text-xs text-slate-500">Pay when your order arrives</p>
@@ -181,7 +181,7 @@
                                 <span class="ml-auto text-xl">💵</span>
                             </label>
                             <label class="flex items-center gap-3 p-3.5 border border-slate-200 rounded-xl cursor-pointer hover:border-blue-400 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50 transition">
-                                <input type="radio" name="payment" value="bkash" class="accent-blue-600">
+                                <input type="radio" name="payment_method" value="bkash" class="accent-blue-600">
                                 <div>
                                     <p class="text-sm font-medium text-slate-900">bKash</p>
                                     <p class="text-xs text-slate-500">Mobile banking payment</p>
@@ -189,7 +189,7 @@
                                 <span class="ml-auto text-xl">📱</span>
                             </label>
                             <label class="flex items-center gap-3 p-3.5 border border-slate-200 rounded-xl cursor-pointer hover:border-blue-400 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50 transition">
-                                <input type="radio" name="payment" value="nagad" class="accent-blue-600">
+                                <input type="radio" name="payment_method" value="nagad" class="accent-blue-600">
                                 <div>
                                     <p class="text-sm font-medium text-slate-900">Nagad</p>
                                     <p class="text-xs text-slate-500">Mobile banking payment</p>
@@ -346,19 +346,65 @@ document.addEventListener('DOMContentLoaded', function () {
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
         </svg> Placing Order…`;
 
-        setTimeout(function () {
-            // Clear cart
-            Cart.clear();
+        const formData = new FormData(form);
 
-            // Generate order reference
-            const ref = 'BP-' + Date.now().toString(36).toUpperCase();
-            document.getElementById('confirm-ref').textContent = 'Order Reference: ' + ref;
+        // Append cart items to FormData
+        items.forEach(function (item, index) {
+            formData.append('items[' + index + '][product_id]', item.id);
+            formData.append('items[' + index + '][quantity]', item.qty);
+            formData.append('items[' + index + '][price]', item.price);
+        });
 
-            // Show confirmed screen
-            contentEl.classList.add('hidden');
-            confirmedEl.classList.remove('hidden');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }, 1200);
+        fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+            },
+            body: formData,
+        })
+        .then(function (response) {
+            return response.json().then(function (data) {
+                return { status: response.status, data: data };
+            });
+        })
+        .then(function ({ status, data }) {
+            if (status === 200 && data.success) {
+                Cart.clear();
+                window.location.href = data.redirect;
+            } else {
+                // Re-enable button
+                btn.disabled = false;
+                btn.innerHTML = `<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg> Place Order`;
+
+                // Show server validation errors
+                if (data.errors) {
+                    Object.keys(data.errors).forEach(function (field) {
+                        const el = form.querySelector('[data-error="' + field + '"]');
+                        const input = document.getElementById(field);
+                        if (el) {
+                            el.textContent = data.errors[field][0];
+                            el.classList.remove('hidden');
+                        }
+                        if (input) {
+                            input.classList.add('border-red-400');
+                            input.classList.remove('border-slate-300');
+                        }
+                    });
+                } else {
+                    alert(data.message || 'Something went wrong. Please try again.');
+                }
+            }
+        })
+        .catch(function () {
+            btn.disabled = false;
+            btn.innerHTML = `<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg> Place Order`;
+            alert('Network error. Please check your connection and try again.');
+        });
     });
 });
 </script>
