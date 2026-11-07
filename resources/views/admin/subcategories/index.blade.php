@@ -10,7 +10,7 @@
 
     {{-- Category filter --}}
     <div class="mb-6">
-        <form method="GET" action="{{ route('admin.subcategories.index') }}" class="flex gap-2 flex-wrap items-center">
+        <form method="GET" action="{{ route('admin.subcategories.index') }}" class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <select
                 name="category_id"
                 onchange="this.form.submit()"
@@ -24,7 +24,7 @@
                 @endforeach
             </select>
             @if (request('category_id'))
-                <a href="{{ route('admin.subcategories.index') }}" class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 transition-colors">
+                <a href="{{ route('admin.subcategories.index') }}" class="w-full sm:w-auto text-center rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 transition-colors">
                     Clear
                 </a>
             @endif
@@ -33,6 +33,7 @@
 
     {{-- Table --}}
     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50">
                 <tr>
@@ -101,6 +102,7 @@
                 @endforelse
             </tbody>
         </table>
+        </div>
     </div>
 
     {{-- Pagination --}}

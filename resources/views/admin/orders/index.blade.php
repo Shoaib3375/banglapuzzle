@@ -35,7 +35,7 @@
         @if ($currentStatus)
             <input type="hidden" name="status" value="{{ $currentStatus }}">
         @endif
-        <div class="flex gap-2 max-w-md">
+        <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:max-w-md">
             <input
                 type="text"
                 name="search"
@@ -44,12 +44,12 @@
                 class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
             <button type="submit"
-                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                    class="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
                 Search
             </button>
             @if ($searchTerm)
                 <a href="{{ route('admin.orders.index', $currentStatus ? ['status' => $currentStatus] : []) }}"
-                   class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-semibold rounded-lg transition-colors">
+                   class="w-full sm:w-auto text-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-semibold rounded-lg transition-colors">
                     Clear
                 </a>
             @endif

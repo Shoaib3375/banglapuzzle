@@ -7,7 +7,7 @@
 <div class="py-4">
 
     {{-- Filter bar --}}
-    <form method="GET" action="{{ route('admin.products.index') }}" class="flex flex-wrap gap-3 mb-6 items-center">
+    <form method="GET" action="{{ route('admin.products.index') }}" class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center mb-6">
 
         {{-- Search --}}
         <input
@@ -15,7 +15,7 @@
             name="search"
             value="{{ request('search') }}"
             placeholder="Search by name…"
-            class="rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 w-52"
+            class="rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 w-full sm:w-52"
         >
 
         {{-- Category filter --}}
@@ -82,10 +82,10 @@
             </a>
         @endif
 
-        <div class="ml-auto">
+        <div class="sm:ml-auto">
             <a
                 href="{{ route('admin.products.create') }}"
-                class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm"
+                class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm"
             >
                 + New Product
             </a>
@@ -94,6 +94,7 @@
 
     {{-- Table --}}
     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50">
                 <tr>
@@ -183,6 +184,7 @@
                 @endforelse
             </tbody>
         </table>
+        </div>
     </div>
 
     {{-- Pagination --}}

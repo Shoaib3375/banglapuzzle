@@ -4,7 +4,7 @@
 @section('page-title', 'Edit Product')
 
 @section('content')
-<div class="py-4 max-w-3xl">
+<div class="py-4 w-full lg:max-w-3xl">
 
     <div class="mb-4">
         <a href="{{ route('admin.products.index') }}" class="text-sm text-blue-600 hover:text-blue-800">← Back to Products</a>
@@ -225,16 +225,16 @@
             </div>
 
             {{-- Submit --}}
-            <div class="flex items-center gap-3">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <button
                     type="submit"
-                    class="rounded-lg bg-blue-600 px-6 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm"
+                    class="w-full sm:w-auto rounded-lg bg-blue-600 px-6 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm"
                 >
                     Update Product
                 </button>
                 <a
                     href="{{ route('admin.products.index') }}"
-                    class="rounded-lg bg-slate-100 px-6 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 transition-colors"
+                    class="w-full sm:w-auto text-center rounded-lg bg-slate-100 px-6 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 transition-colors"
                 >
                     Cancel
                 </a>

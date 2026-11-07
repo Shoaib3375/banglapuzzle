@@ -10,19 +10,19 @@
 
     {{-- Search bar --}}
     <div class="mb-6">
-        <form method="GET" action="{{ route('admin.categories.index') }}" class="flex gap-2 flex-wrap">
+        <form method="GET" action="{{ route('admin.categories.index') }}" class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <input
                 type="text"
                 name="search"
                 value="{{ request('search') }}"
                 placeholder="Search by name…"
-                class="rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 w-60"
+                class="rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 w-full sm:w-60"
             >
-            <button type="submit" class="rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-300 transition-colors">
+            <button type="submit" class="w-full sm:w-auto rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-300 transition-colors">
                 Search
             </button>
             @if (request('search'))
-                <a href="{{ route('admin.categories.index') }}" class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 transition-colors">
+                <a href="{{ route('admin.categories.index') }}" class="w-full sm:w-auto text-center rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 transition-colors">
                     Clear
                 </a>
             @endif
@@ -31,6 +31,7 @@
 
     {{-- Table --}}
     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50">
                 <tr>
@@ -101,6 +102,7 @@
                 @endforelse
             </tbody>
         </table>
+        </div>
     </div>
 
     {{-- Pagination --}}

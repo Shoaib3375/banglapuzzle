@@ -41,10 +41,10 @@
         />
 
         {{-- Two-column layout: image left, details right --}}
-        <div class="mt-6 grid grid-cols-1 md:grid-cols-5 gap-10">
+        <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-10">
 
             {{-- Image column --}}
-            <div class="md:col-span-2">
+            <div class="">
                 <div class="rounded-2xl overflow-hidden shadow-lg bg-white">
                     <div class="aspect-square bg-gray-100">
                         <img
@@ -57,7 +57,7 @@
             </div>
 
             {{-- Details column --}}
-            <div class="md:col-span-3 md:sticky md:top-24 flex flex-col">
+            <div class="lg:sticky lg:top-24 flex flex-col">
 
                 {{-- Category chips --}}
                 <div class="flex items-center gap-2 flex-wrap mb-3">
@@ -122,7 +122,7 @@
                         type="button"
                         id="add-to-cart-btn"
                         onclick="addToCart()"
-                        class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-3.5 px-8 rounded-xl text-base transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-3.5 px-8 min-h-[48px] rounded-xl text-base transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                         aria-label="Add to cart"
                     >
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

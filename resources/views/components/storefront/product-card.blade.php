@@ -55,7 +55,7 @@
         </a>
 
         <div class="mt-2 flex items-baseline gap-2 flex-wrap">
-            <span class="text-base font-bold text-slate-900">৳{{ number_format($product->new_price, 0) }}</span>
+            <span class="text-sm font-bold text-slate-900">৳{{ number_format($product->new_price, 0) }}</span>
             @if ((float) $product->old_price > (float) $product->new_price)
                 <span class="text-xs text-slate-400 line-through">৳{{ number_format($product->old_price, 0) }}</span>
             @endif
@@ -65,7 +65,7 @@
         <button
             type="button"
             onclick="cardAddToCart(this, {{ $cartData }})"
-            class="mt-3 w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-semibold py-2 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+            class="mt-3 w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-semibold py-2.5 min-h-[44px] rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
             aria-label="Add {{ $product->name }} to cart"
         >
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

@@ -4,7 +4,7 @@
 @section('meta_description', 'Create your BanglaPuzzle account.')
 
 @section('content')
-<div class="max-w-md mx-auto px-4 py-12">
+<div class="max-w-md mx-auto px-4 sm:px-0 py-12">
     <div class="bg-white rounded-2xl shadow-lg p-8">
         <div class="text-center mb-8">
             <h1 class="text-2xl font-bold text-slate-900">Create Account</h1>
@@ -98,7 +98,7 @@
 
             <button
                 type="submit"
-                class="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                class="w-full min-h-[48px] rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
             >
                 Create Account
             </button>

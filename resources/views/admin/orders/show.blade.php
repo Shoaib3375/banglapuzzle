@@ -4,7 +4,7 @@
 @section('page-title', 'Order Detail')
 
 @section('content')
-<div class="py-4 max-w-5xl">
+<div class="py-4 w-full max-w-5xl">
 
     {{-- Back link --}}
     <a href="{{ route('admin.orders.index') }}"

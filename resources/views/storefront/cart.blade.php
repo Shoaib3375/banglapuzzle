@@ -29,7 +29,7 @@
     </div>
 
     {{-- Cart content (shown by JS when cart has items) --}}
-    <div id="cart-content" class="hidden lg:grid lg:grid-cols-3 gap-8">
+    <div id="cart-content" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-8">
 
         {{-- Items column --}}
         <div class="lg:col-span-2 space-y-4">
@@ -52,7 +52,7 @@
 
         {{-- Order summary --}}
         <div class="lg:col-span-1">
-            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm sticky top-24">
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm lg:sticky lg:top-24">
                 <h2 class="text-base font-semibold text-slate-900 mb-5">Order Summary</h2>
 
                 <div class="space-y-3 text-sm">
@@ -76,7 +76,7 @@
 
                 <a href="{{ route('storefront.checkout') }}"
                    id="checkout-btn"
-                   class="mt-6 w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition-colors text-sm">
+                   class="mt-6 w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 min-h-[48px] rounded-xl transition-colors text-sm">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>

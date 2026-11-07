@@ -42,7 +42,7 @@
     </div>
 
     {{-- Checkout layout --}}
-    <div id="checkout-content" class="hidden lg:grid lg:grid-cols-3 gap-10">
+    <div id="checkout-content" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-10">
 
         {{-- ── Left: Delivery Address Form ── --}}
         <div class="lg:col-span-2">
@@ -52,11 +52,11 @@
                 <div class="flex items-center gap-0 border-b border-slate-100">
                     <div class="flex-1 flex items-center gap-3 px-6 py-4">
                         <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
-                        <span class="text-sm font-semibold text-slate-900">Delivery Address</span>
+                        <span class="text-xs sm:text-sm font-semibold text-slate-900">Delivery Address</span>
                     </div>
                     <div class="flex-1 flex items-center gap-3 px-6 py-4 border-l border-slate-100">
                         <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-500 text-xs font-bold flex items-center justify-center shrink-0">2</span>
-                        <span class="text-sm font-medium text-slate-400">Review & Pay</span>
+                        <span class="text-xs sm:text-sm font-medium text-slate-400">Review & Pay</span>
                     </div>
                 </div>
 
@@ -201,7 +201,7 @@
 
                     {{-- Place order button --}}
                     <button type="submit" id="place-order-btn"
-                            class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-3.5 rounded-xl text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                            class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-3.5 min-h-[48px] rounded-xl text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
@@ -217,7 +217,7 @@
 
         {{-- ── Right: Order Summary ── --}}
         <div class="lg:col-span-1">
-            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm sticky top-24">
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm lg:sticky lg:top-24">
                 <h2 class="text-base font-semibold text-slate-900 mb-4">Order Summary</h2>
 
                 {{-- Item list --}}

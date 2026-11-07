@@ -25,7 +25,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/>
                         </svg>
                     </div>
-                    <span class="text-indigo-700 font-bold text-xl">BanglaPuzzle</span>
+                    <span class="text-indigo-700 font-bold text-lg sm:text-xl">BanglaPuzzle</span>
                 </a>
 
                 {{-- Desktop nav: Home + Categories with hover dropdown --}}
@@ -146,6 +146,14 @@
                         </span>
                     </a>
                 </div>
+
+                {{-- Mobile cart icon (visible only on mobile) --}}
+                <a href="{{route('storefront.cart')}}" class="md:hidden relative p-2 text-slate-500 hover:text-blue-600 rounded-lg hover:bg-slate-100 transition-colors" aria-label="View cart">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    <span data-cart-count style="display:none" class="absolute -top-0.5 -right-0.5 bg-blue-600 text-white text-[10px] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center leading-none">0</span>
+                </a>
 
                 {{-- Mobile hamburger --}}
                 <button
@@ -269,7 +277,7 @@
     {{-- Footer --}}
     <footer class="bg-slate-900 text-slate-300 mt-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
 
                 {{-- Column 1: About --}}
                 <div>

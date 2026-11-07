@@ -8,8 +8,11 @@
 </head>
 <body class="bg-slate-50 min-h-screen flex">
 
+    {{-- Sidebar overlay (mobile) --}}
+    <div id="sidebar-overlay" class="fixed inset-0 z-40 bg-black bg-opacity-50 hidden md:hidden"></div>
+
     {{-- Sidebar --}}
-    <aside class="w-64 min-h-screen bg-white border-r border-slate-200 flex flex-col shrink-0">
+    <aside id="admin-sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 transform -translate-x-full transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:transform-none md:flex md:flex-col">
 
         {{-- Brand --}}
         <div class="px-5 py-5 border-b border-slate-200">
@@ -105,7 +108,12 @@
     <div class="flex-1 flex flex-col min-h-screen overflow-x-hidden">
 
         {{-- Topbar --}}
-        <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+        <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-4 flex items-center justify-between">
+            <button id="sidebar-toggle" type="button" class="md:hidden inline-flex items-center justify-center p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors mr-3" aria-label="Toggle sidebar">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
             <h1 class="text-xl font-semibold text-slate-800">@yield('page-title', 'Dashboard')</h1>
             <span class="text-sm bg-slate-100 text-slate-600 font-medium px-3 py-1.5 rounded-lg">
                 {{ Auth::user()->name }}
@@ -113,7 +121,7 @@
         </header>
 
         {{-- Flash messages --}}
-        <div class="px-6 pt-4 space-y-2">
+        <div class="px-4 sm:px-6 pt-4 space-y-2">
             @if (session('success'))
                 <x-alert type="success" :message="session('success')"/>
             @endif
@@ -123,10 +131,34 @@
         </div>
 
         {{-- Page content --}}
-        <main class="flex-1 px-6 pb-8">
+        <main class="flex-1 px-4 sm:px-6 pb-8">
             @yield('content')
         </main>
     </div>
+
+    <script>
+    (function() {
+        var toggle = document.getElementById('sidebar-toggle');
+        var sidebar = document.getElementById('admin-sidebar');
+        var overlay = document.getElementById('sidebar-overlay');
+        if (!toggle || !sidebar) return;
+        function openSidebar() {
+            sidebar.classList.remove('-translate-x-full');
+            sidebar.classList.add('translate-x-0');
+            if (overlay) overlay.classList.remove('hidden');
+        }
+        function closeSidebar() {
+            sidebar.classList.remove('translate-x-0');
+            sidebar.classList.add('-translate-x-full');
+            if (overlay) overlay.classList.add('hidden');
+        }
+        toggle.addEventListener('click', function() {
+            var isOpen = !sidebar.classList.contains('-translate-x-full');
+            if (isOpen) { closeSidebar(); } else { openSidebar(); }
+        });
+        if (overlay) overlay.addEventListener('click', closeSidebar);
+    })();
+    </script>
 
     @stack('scripts')
 </body>

@@ -27,13 +27,13 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
 
             {{-- Left: copy --}}
-            <div class="order-2 lg:order-1">
+            <div class="">
                 <p class="inline-flex items-center gap-2 text-xs font-semibold tracking-widest text-blue-600 uppercase mb-5">
                     <span class="w-6 h-px bg-blue-600 inline-block"></span>
                     Welcome to BanglaPuzzle
                 </p>
 
-                <h1 class="text-4xl sm:text-5xl lg:text-[56px] font-bold text-slate-900 leading-[1.1] tracking-tight">
+                <h1 class="text-3xl sm:text-4xl lg:text-[56px] font-bold text-slate-900 leading-[1.1] tracking-tight">
                     Find Something<br>
                     <span class="text-blue-600">You'll Love.</span>
                 </h1>
@@ -74,7 +74,7 @@
             </div>
 
             {{-- Right: product image mosaic --}}
-            <div class="order-1 lg:order-2 relative">
+            <div class="hidden lg:block relative">
                 {{-- Background blob --}}
                 <div class="absolute inset-0 bg-slate-100 rounded-3xl -rotate-3 scale-95 opacity-50"></div>
                 @if($products->count() >= 4)
@@ -118,14 +118,14 @@
 ══════════════════════════════════════════════════════════════════ --}}
 <section class="border-y border-slate-200 bg-slate-50" aria-label="Benefits">
     <div class="max-w-screen-xl mx-auto px-6 lg:px-12 py-6">
-        <div class="grid grid-cols-2 lg:grid-cols-4 divide-x divide-slate-200">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
             @foreach([
                 ['icon'=>'🚚','title'=>'Carefully Selected','desc'=>'Curated quality products'],
                 ['icon'=>'🔍','title'=>'Easy Discovery','desc'=>'Find products fast'],
                 ['icon'=>'💬','title'=>'Customer Support','desc'=>'We\'re here to help'],
                 ['icon'=>'🔒','title'=>'Secure Shopping','desc'=>'Safe & trusted experience'],
             ] as $b)
-            <div class="flex items-center gap-3 px-4 sm:px-6 py-3 first:pl-0 last:pr-0">
+            <div class="border border-slate-200 rounded-xl p-4 flex items-center gap-3">
                 <span class="text-2xl shrink-0" aria-hidden="true">{{ $b['icon'] }}</span>
                 <div>
                     <p class="text-sm font-semibold text-slate-900">{{ $b['title'] }}</p>
@@ -245,7 +245,7 @@
                     </p>
                 </div>
                 <a href="#categories"
-                   class="shrink-0 inline-flex items-center gap-2 bg-white text-blue-600 hover:bg-slate-50 font-semibold px-7 py-3.5 rounded-lg text-sm transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600">
+                   class="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 bg-white text-blue-600 hover:bg-slate-50 font-semibold px-7 py-3.5 rounded-lg text-sm transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600">
                     Shop Now
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                         <path d="M17 8l4 4m0 0l-4 4m4-4H3"/>
