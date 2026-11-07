@@ -24,6 +24,8 @@ class AppServiceProvider extends ServiceProvider
         View::composer('layouts.storefront', function ($view) {
             $view->with('navCategories', Category::where('is_active', true)
                 ->withCount('subcategories')
+                ->with(['subcategories' => fn ($q) => $q->where('is_active', true)->orderBy('name')])
+                ->orderBy('name')
                 ->get());
         });
     }

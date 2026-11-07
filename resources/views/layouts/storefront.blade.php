@@ -28,18 +28,57 @@
                     <span class="text-indigo-700 font-bold text-xl">BanglaPuzzle</span>
                 </a>
 
-                {{-- Desktop category nav --}}
-                <nav class="hidden md:flex items-center gap-1" aria-label="Categories">
+                {{-- Desktop nav: Home + Categories with hover dropdown --}}
+                <nav class="hidden md:flex items-center gap-1" aria-label="Main navigation">
+
+                    {{-- Home link --}}
+                    <a href="{{ route('home') }}"
+                       class="px-3 py-2 rounded-md text-sm font-medium transition-colors {{ request()->routeIs('home') ? 'text-blue-600' : 'text-slate-700 hover:text-blue-600' }}">
+                        Home
+                    </a>
+
+                    {{-- Each category with hover dropdown showing its subcategories --}}
                     @foreach ($navCategories as $category)
-                        <a
-                            href="{{ route('storefront.category', $category->slug) }}"
-                            class="px-3 py-2 rounded-md text-sm font-medium transition-colors
-                                {{ request()->routeIs('storefront.category') && request()->route('slug') === $category->slug
-                                    ? 'text-orange-600 border-b-2 border-orange-500'
-                                    : 'text-slate-700 hover:text-orange-600' }}"
-                        >
+                    <div class="relative group">
+                        {{-- Category trigger --}}
+                        <a href="{{ route('storefront.category', $category->slug) }}"
+                           class="flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors
+                               {{ request()->routeIs('storefront.category') && request()->route('slug') === $category->slug
+                                   ? 'text-blue-600'
+                                   : 'text-slate-700 group-hover:text-blue-600' }}">
                             {{ $category->name }}
+                            @if($category->subcategories->isNotEmpty())
+                            <svg class="w-3 h-3 mt-0.5 opacity-50 group-hover:opacity-100 transition-transform duration-150 group-hover:rotate-180"
+                                 fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                                <path d="M19 9l-7 7-7-7"/>
+                            </svg>
+                            @endif
                         </a>
+
+                        {{-- Dropdown — only render when category has subcategories --}}
+                        @if($category->subcategories->isNotEmpty())
+                        <div class="absolute top-full left-0 mt-1 w-52 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50
+                                    opacity-0 invisible translate-y-1
+                                    group-hover:opacity-100 group-hover:visible group-hover:translate-y-0
+                                    transition-all duration-150 ease-out">
+                            {{-- "All [category]" link at top --}}
+                            <a href="{{ route('storefront.category', $category->slug) }}"
+                               class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-blue-50 hover:text-blue-600 transition-colors border-b border-slate-100 mb-1">
+                                All {{ $category->name }}
+                                <svg class="w-3.5 h-3.5 ml-auto text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </a>
+                            {{-- Subcategory links --}}
+                            @foreach($category->subcategories as $sub)
+                            <a href="{{ route('storefront.subcategory', [$category->slug, $sub->slug]) }}"
+                               class="block px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                                {{ $sub->name }}
+                            </a>
+                            @endforeach
+                        </div>
+                        @endif
+                    </div>
                     @endforeach
                 </nav>
 
@@ -75,20 +114,47 @@
             </div>
         </div>
 
-        {{-- Mobile category nav --}}
-        <nav id="mobile-nav" class="hidden md:hidden border-t border-slate-100 bg-white" aria-label="Categories (mobile)">
-            <div class="px-4 py-3 space-y-1">
+        {{-- Mobile nav: expandable category accordion --}}
+        <nav id="mobile-nav" class="hidden md:hidden border-t border-slate-100 bg-white" aria-label="Mobile navigation">
+            <div class="px-4 py-3 space-y-0.5">
+                {{-- Home --}}
+                <a href="{{ route('home') }}"
+                   class="block px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors">
+                    Home
+                </a>
+
+                {{-- Each category: tap to expand subcategories --}}
                 @foreach ($navCategories as $category)
-                    <a
-                        href="{{ route('storefront.category', $category->slug) }}"
-                        class="block px-3 py-2 rounded-md text-sm font-medium transition-colors
-                            {{ request()->routeIs('storefront.category') && request()->route('slug') === $category->slug
-                                ? 'text-orange-600 bg-orange-50'
-                                : 'text-slate-700 hover:bg-orange-50 hover:text-orange-600' }}"
-                    >
-                        {{ $category->name }}
-                    </a>
+                <div>
+                    <button type="button"
+                            onclick="toggleMobileCat(this)"
+                            class="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors">
+                        <span>{{ $category->name }}</span>
+                        @if($category->subcategories->isNotEmpty())
+                        <svg class="w-4 h-4 text-slate-400 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M19 9l-7 7-7-7"/>
+                        </svg>
+                        @endif
+                    </button>
+
+                    @if($category->subcategories->isNotEmpty())
+                    <div class="hidden pl-4 pb-1 space-y-0.5">
+                        <a href="{{ route('storefront.category', $category->slug) }}"
+                           class="block px-3 py-1.5 rounded-md text-sm font-semibold text-slate-800 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                            All {{ $category->name }}
+                        </a>
+                        @foreach($category->subcategories as $sub)
+                        <a href="{{ route('storefront.subcategory', [$category->slug, $sub->slug]) }}"
+                           class="block px-3 py-1.5 rounded-md text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                            {{ $sub->name }}
+                        </a>
+                        @endforeach
+                    </div>
+                    @endif
+                </div>
                 @endforeach
+
+                {{-- Cart --}}
                 <div class="border-t border-slate-100 mt-2 pt-2">
                     <a href="{{ route('storefront.cart') }}"
                        class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
@@ -213,6 +279,16 @@
                 toggle.setAttribute('aria-expanded', String(! isOpen));
             });
         })();
+
+        // Mobile category accordion toggle
+        function toggleMobileCat(btn) {
+            var submenu = btn.nextElementSibling;
+            var arrow   = btn.querySelector('svg');
+            if (!submenu) return;
+            var isOpen = !submenu.classList.contains('hidden');
+            submenu.classList.toggle('hidden', isOpen);
+            if (arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+        }
 
         // ── Shared card "Add to Cart" handler ────────────────────────────────
         // Used by x-storefront.product-card on every listing page.

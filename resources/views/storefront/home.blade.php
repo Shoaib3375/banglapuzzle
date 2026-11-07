@@ -255,48 +255,6 @@
         </div>
     </section>
 
-    {{-- ══════════════════════════════════════════════════════════════
-         G. SUBCATEGORY BROWSER
-    ══════════════════════════════════════════════════════════════ --}}
-    @if($categories->isNotEmpty())
-    <section class="pb-16 lg:pb-20" aria-labelledby="subcategories-heading">
-        <div class="mb-8">
-            <p class="text-xs font-semibold tracking-widest text-blue-600 uppercase mb-2">Browse</p>
-            <h2 id="subcategories-heading" class="text-3xl font-bold text-slate-900">Shop by Subcategory</h2>
-            <p class="mt-2 text-slate-500 text-sm">Dive deeper into any collection.</p>
-        </div>
-
-        <div class="space-y-8">
-            @foreach($categories->take(4) as $category)
-            @if($category->subcategories->isNotEmpty())
-            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="font-semibold text-slate-900 text-base">{{ $category->name }}</h3>
-                    <a href="{{ route('storefront.category', $category->slug) }}"
-                       class="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors flex items-center gap-1">
-                        View all
-                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path d="M9 5l7 7-7 7"/>
-                        </svg>
-                    </a>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                    @foreach($category->subcategories as $sub)
-                    <a href="{{ route('storefront.subcategory', [$category->slug, $sub->slug]) }}"
-                       class="inline-flex items-center gap-1.5 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-xs font-medium px-3.5 py-1.5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400">
-                        {{ $sub->name }}
-                        @if($sub->products_count ?? null)
-                        <span class="text-slate-400 text-[10px]">{{ $sub->products_count }}</span>
-                        @endif
-                    </a>
-                    @endforeach
-                </div>
-            </div>
-            @endif
-            @endforeach
-        </div>
-    </section>
-    @endif
 
 </div>{{-- /max-w-screen-xl --}}
 
