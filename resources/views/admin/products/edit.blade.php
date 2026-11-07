@@ -282,15 +282,31 @@
         }
     }
 
-    // Slug changes on edit — name does NOT auto-update slug
+    // Slug changes on edit — name does NOT auto-update slug; trigger live check as user types
     slugInput.addEventListener('input', function () {
         const slug = this.value;
         updatePreview(slug);
         showWarning(slug !== originalSlug && slug.trim() !== '');
+        slugStatus.innerHTML = '';
         clearTimeout(slugCheckTimer);
+        if (slug.trim() && slug.trim() !== originalSlug) {
+            slugCheckTimer = setTimeout(function () {
+                slugStatus.innerHTML = '<span class="text-slate-400">Checking\u2026</span>';
+                fetch(checkSlugUrl + '?slug=' + encodeURIComponent(slug.trim()) + '&product_id=' + productId)
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (data.available) {
+                            slugStatus.innerHTML = '<span class="text-emerald-600">\u2713 Available</span>';
+                        } else {
+                            slugStatus.innerHTML = '<span class="text-red-500">\u2717 Already taken</span>';
+                        }
+                    })
+                    .catch(function () { slugStatus.innerHTML = ''; });
+            }, 600);
+        }
     });
 
-    // Debounced availability check on blur
+    // Also confirm on blur
     slugInput.addEventListener('blur', function () {
         clearTimeout(slugCheckTimer);
         const slug = this.value.trim();
@@ -307,7 +323,7 @@
                     }
                 })
                 .catch(function () { slugStatus.innerHTML = ''; });
-        }, 400);
+        }, 200);
     });
 
     // Category/subcategory

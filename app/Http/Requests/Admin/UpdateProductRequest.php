@@ -56,6 +56,20 @@ class UpdateProductRequest extends FormRequest
                     );
                 }
             }
+
+            // Prevent recycling a slug that exists in slug history (it belongs to another product's past),
+            // unless the history record belongs to the product currently being updated.
+            $slug = $this->input('slug');
+            $productId = $this->route('product')?->id ?? $this->route('product');
+
+            if ($slug && ! $validator->errors()->has('slug')) {
+                $conflict = \App\Models\ProductSlugHistory::where('old_slug', $slug)
+                    ->when($productId, fn ($q) => $q->where('product_id', '!=', $productId))
+                    ->exists();
+                if ($conflict) {
+                    $validator->errors()->add('slug', 'This slug was previously used by another product and cannot be reused.');
+                }
+            }
         });
     }
 

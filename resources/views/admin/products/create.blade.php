@@ -281,7 +281,7 @@
         slugStatus.innerHTML = '';
     });
 
-    // Mark slug as manually edited
+    // Mark slug as manually edited; trigger live availability check as the user types
     slugInput.addEventListener('input', function () {
         slugManual = true;
         modeBadge.textContent = 'Custom';
@@ -289,16 +289,20 @@
         modeBadge.classList.add('text-blue-600', 'bg-blue-50');
         updatePreview(this.value);
         slugStatus.innerHTML = '';
+        clearTimeout(slugCheckTimer);
+        slugCheckTimer = setTimeout(function () {
+            checkSlugAvailability(slugInput.value.trim());
+        }, 600);
     });
 
-    // Debounced availability check on blur
+    // Also confirm on blur
     slugInput.addEventListener('blur', function () {
         clearTimeout(slugCheckTimer);
         const slug = this.value.trim();
         if (!slug) { slugStatus.innerHTML = ''; return; }
         slugCheckTimer = setTimeout(function () {
             checkSlugAvailability(slug);
-        }, 400);
+        }, 200);
     });
 
     // Initialize preview

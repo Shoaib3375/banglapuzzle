@@ -47,6 +47,15 @@ class StoreProductRequest extends FormRequest
                     );
                 }
             }
+
+            // Prevent recycling a slug that exists in slug history (it belongs to another product's past)
+            $slug = $this->input('slug');
+            if ($slug && ! $validator->errors()->has('slug')) {
+                $conflict = \App\Models\ProductSlugHistory::where('old_slug', $slug)->exists();
+                if ($conflict) {
+                    $validator->errors()->add('slug', 'This slug was previously used by another product and cannot be reused.');
+                }
+            }
         });
     }
 

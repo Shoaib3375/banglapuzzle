@@ -11,16 +11,7 @@
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col">
 
-    {{-- Top bar --}}
-    <div class="bg-slate-900 text-slate-400 text-xs">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-9 flex items-center justify-between">
-            <span>Quality products at honest prices 🇧🇩</span>
-            <div class="flex items-center gap-4">
-                <span>📞 +880 1700-000000</span>
-                <a href="{{ route('admin.dashboard') }}" class="hover:text-white transition-colors">Admin Panel</a>
-            </div>
-        </div>
-    </div>
+    {{-- Top bar removed — announcement bar is now inside each page view --}}
 
     {{-- Main header --}}
     <header class="bg-white shadow-sm sticky top-0 z-50">
@@ -54,17 +45,18 @@
 
                 {{-- Right icons --}}
                 <div class="hidden md:flex items-center gap-3">
-                    <button type="button" class="p-2 text-slate-500 hover:text-indigo-600 transition-colors rounded-lg hover:bg-slate-100" aria-label="Search">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                        </svg>
-                    </button>
-                    <button type="button" class="relative p-2 text-slate-500 hover:text-indigo-600 transition-colors rounded-lg hover:bg-slate-100" aria-label="Cart">
+                    <a href="{{ route('storefront.cart') }}"
+                       class="relative p-2 text-slate-500 hover:text-blue-600 transition-colors rounded-lg hover:bg-slate-100"
+                       aria-label="View cart">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
                         </svg>
-                        <span class="absolute -top-0.5 -right-0.5 bg-orange-500 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center">0</span>
-                    </button>
+                        <span data-cart-count
+                              style="display:none"
+                              class="absolute -top-0.5 -right-0.5 bg-blue-600 text-white text-[10px] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center leading-none">
+                            0
+                        </span>
+                    </a>
                 </div>
 
                 {{-- Mobile hamburger --}}
@@ -97,6 +89,17 @@
                         {{ $category->name }}
                     </a>
                 @endforeach
+                <div class="border-t border-slate-100 mt-2 pt-2">
+                    <a href="{{ route('storefront.cart') }}"
+                       class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                        Cart
+                        <span data-cart-count style="display:none"
+                              class="ml-auto bg-blue-600 text-white text-[10px] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center">0</span>
+                    </a>
+                </div>
             </div>
         </nav>
     </header>
@@ -210,6 +213,48 @@
                 toggle.setAttribute('aria-expanded', String(! isOpen));
             });
         })();
+
+        // ── Shared card "Add to Cart" handler ────────────────────────────────
+        // Used by x-storefront.product-card on every listing page.
+        function cardAddToCart(btn, item) {
+            Cart.add(item);
+
+            // Brief success feedback on the button itself
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.classList.replace('bg-blue-600',       'bg-emerald-600');
+            btn.classList.replace('hover:bg-blue-700', 'hover:bg-emerald-700');
+            btn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> Added!`;
+
+            // Toast
+            const existing = document.getElementById('cart-toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.id = 'cart-toast';
+            toast.setAttribute('role', 'status');
+            toast.setAttribute('aria-live', 'polite');
+            toast.className = 'fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-slate-900 text-white text-sm font-medium px-5 py-3.5 rounded-xl shadow-2xl opacity-0 translate-y-4 transition-all duration-300';
+            const count = Cart.getCount();
+            toast.innerHTML = `
+                <svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>
+                <div>
+                    <p>${item.name.substring(0,40)} added</p>
+                    <a href="{{ route('storefront.cart') }}" class="text-xs text-blue-400 hover:text-blue-300 underline">
+                        View Cart (${count} item${count !== 1 ? 's' : ''})
+                    </a>
+                </div>`;
+            document.body.appendChild(toast);
+            requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.remove('opacity-0','translate-y-4')));
+            setTimeout(() => { toast.classList.add('opacity-0','translate-y-4'); setTimeout(() => toast.remove(), 300); }, 3500);
+
+            // Reset button
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = original;
+                btn.classList.replace('bg-emerald-600',       'bg-blue-600');
+                btn.classList.replace('hover:bg-emerald-700', 'hover:bg-blue-700');
+            }, 2000);
+        }
     </script>
 
     @stack('scripts')

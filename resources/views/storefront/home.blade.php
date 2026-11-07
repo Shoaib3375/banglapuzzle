@@ -1,241 +1,329 @@
 @extends('layouts.storefront')
 
-@section('meta_title', 'BanglaPuzzle Shop — Home')
+@section('meta_title', 'BanglaPuzzle — Find Something You\'ll Love')
+@section('meta_description', 'Explore thoughtfully selected products across our collections. Quality you can trust.')
+
+@section('og_tags')
+<meta property="og:title" content="BanglaPuzzle — Find Something You'll Love">
+<meta property="og:description" content="Explore thoughtfully selected products across our collections.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ url('/') }}">
+@endsection
 
 @section('content')
 
-    {{-- ============================================================
-         HERO BANNER
-    ============================================================ --}}
-    <section class="relative bg-gradient-to-br from-gray-900 via-gray-800 to-indigo-900 text-white overflow-hidden" style="min-height:500px;">
+{{-- ══════════════════════════════════════════════════════════════════
+     A. ANNOUNCEMENT BAR
+══════════════════════════════════════════════════════════════════ --}}
+<div class="bg-slate-900 text-slate-300 text-xs text-center py-2.5 px-4 tracking-wide">
+    <span>✦ Discover our latest collections &nbsp;·&nbsp; Free delivery on orders over ৳2,000 ✦</span>
+</div>
 
-        {{-- Decorative circles --}}
-        <div class="absolute top-0 right-0 w-96 h-96 rounded-full opacity-10 bg-white" style="transform:translate(30%,-30%)"></div>
-        <div class="absolute bottom-0 left-0 w-64 h-64 rounded-full opacity-10 bg-white" style="transform:translate(-30%,30%)"></div>
-        <div class="absolute top-1/2 right-1/4 w-32 h-32 rounded-full opacity-5 bg-orange-400" style="transform:translateY(-50%)"></div>
+{{-- ══════════════════════════════════════════════════════════════════
+     B. HERO SECTION
+══════════════════════════════════════════════════════════════════ --}}
+<section class="bg-white overflow-hidden" aria-label="Hero">
+    <div class="max-w-screen-xl mx-auto px-6 lg:px-12 py-16 lg:py-24">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
 
-        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 flex flex-col items-center text-center">
-            {{-- Eyebrow badge --}}
-            <span class="inline-flex items-center gap-2 bg-white bg-opacity-10 border border-white border-opacity-20 text-white text-xs font-semibold px-4 py-2 rounded-full mb-6">
-                🇧🇩 Bangladesh's Favourite Online Shop
-            </span>
+            {{-- Left: copy --}}
+            <div class="order-2 lg:order-1">
+                <p class="inline-flex items-center gap-2 text-xs font-semibold tracking-widest text-blue-600 uppercase mb-5">
+                    <span class="w-6 h-px bg-blue-600 inline-block"></span>
+                    Welcome to BanglaPuzzle
+                </p>
 
-            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight max-w-4xl">
-                Shop Smart,<br>
-                <span class="text-orange-400">Shop BanglaPuzzle</span>
-            </h1>
-            <p class="mt-6 text-lg sm:text-xl text-gray-300 max-w-2xl">
-                Discover the best products at unbeatable prices. Quality you can trust, delivery you can count on.
-            </p>
+                <h1 class="text-4xl sm:text-5xl lg:text-[56px] font-bold text-slate-900 leading-[1.1] tracking-tight">
+                    Find Something<br>
+                    <span class="text-blue-600">You'll Love.</span>
+                </h1>
 
-            <div class="mt-10 flex flex-wrap items-center justify-center gap-4">
-                <a
-                    href="#categories"
-                    class="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold px-8 py-3.5 rounded-2xl text-base transition-colors shadow-lg"
-                >
-                    Shop Now
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-                </a>
-                <a
-                    href="#products"
-                    class="inline-flex items-center gap-2 bg-white bg-opacity-10 hover:bg-opacity-20 border border-white border-opacity-30 text-white font-semibold px-8 py-3.5 rounded-2xl text-base transition-colors"
-                >
-                    Browse Products
-                </a>
-            </div>
+                <p class="mt-5 text-base sm:text-lg text-slate-500 leading-relaxed max-w-lg">
+                    Explore thoughtfully selected products across our collections — from everyday essentials to unique finds.
+                </p>
 
-            {{-- Stats row --}}
-            <div class="mt-14 flex flex-wrap justify-center gap-8 text-center">
-                <div>
-                    <p class="text-3xl font-extrabold text-white">
-                        @if ($products->isNotEmpty()) {{ $products->count() }}+ @else 0 @endif
-                    </p>
-                    <p class="text-xs text-gray-400 mt-1 uppercase tracking-widest">Products</p>
+                <div class="mt-8 flex flex-wrap gap-3">
+                    <a href="#products"
+                       class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg text-sm transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        Explore Products
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                        </svg>
+                    </a>
+                    <a href="#categories"
+                       class="inline-flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-semibold px-6 py-3 rounded-lg text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2">
+                        Browse Categories
+                    </a>
                 </div>
-                <div>
-                    <p class="text-3xl font-extrabold text-white">{{ $categories->count() }}+</p>
-                    <p class="text-xs text-gray-400 mt-1 uppercase tracking-widest">Categories</p>
-                </div>
-                <div>
-                    <p class="text-3xl font-extrabold text-white">100%</p>
-                    <p class="text-xs text-gray-400 mt-1 uppercase tracking-widest">Secure Checkout</p>
-                </div>
-            </div>
-        </div>
-    </section>
 
-    {{-- ============================================================
-         USP / TRUST STRIP
-    ============================================================ --}}
-    <section class="bg-white border-b border-gray-100">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-                <div class="flex flex-col sm:flex-row items-center sm:items-start gap-3 text-center sm:text-left">
-                    <div class="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center flex-shrink-0">
-                        <span class="text-2xl">🚚</span>
+                {{-- Trust micro-indicators --}}
+                <div class="mt-10 flex items-center gap-5 flex-wrap">
+                    <div class="flex items-center gap-1.5">
+                        <div class="flex -space-x-1.5">
+                            @foreach(['bg-blue-400','bg-emerald-400','bg-amber-400','bg-rose-400'] as $c)
+                            <div class="w-7 h-7 rounded-full {{ $c }} border-2 border-white"></div>
+                            @endforeach
+                        </div>
+                        <span class="text-xs text-slate-500 font-medium">1,000+ happy customers</span>
                     </div>
-                    <div>
-                        <p class="font-semibold text-gray-900 text-sm">Free Delivery</p>
-                        <p class="text-xs text-gray-500 mt-0.5">On orders over ৳500</p>
-                    </div>
-                </div>
-                <div class="flex flex-col sm:flex-row items-center sm:items-start gap-3 text-center sm:text-left">
-                    <div class="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center flex-shrink-0">
-                        <span class="text-2xl">🔒</span>
-                    </div>
-                    <div>
-                        <p class="font-semibold text-gray-900 text-sm">Secure Payment</p>
-                        <p class="text-xs text-gray-500 mt-0.5">100% protected</p>
-                    </div>
-                </div>
-                <div class="flex flex-col sm:flex-row items-center sm:items-start gap-3 text-center sm:text-left">
-                    <div class="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center flex-shrink-0">
-                        <span class="text-2xl">↩️</span>
-                    </div>
-                    <div>
-                        <p class="font-semibold text-gray-900 text-sm">Easy Returns</p>
-                        <p class="text-xs text-gray-500 mt-0.5">7-day return policy</p>
-                    </div>
-                </div>
-                <div class="flex flex-col sm:flex-row items-center sm:items-start gap-3 text-center sm:text-left">
-                    <div class="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center flex-shrink-0">
-                        <span class="text-2xl">⭐</span>
-                    </div>
-                    <div>
-                        <p class="font-semibold text-gray-900 text-sm">Top Quality</p>
-                        <p class="text-xs text-gray-500 mt-0.5">Verified products</p>
+                    <div class="flex items-center gap-1 text-amber-400">
+                        @for($i=0;$i<5;$i++)<svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>@endfor
+                        <span class="text-xs text-slate-500 font-medium ml-1">4.9 / 5</span>
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16">
-
-        {{-- ============================================================
-             CATEGORIES SHOWCASE
-        ============================================================ --}}
-        @if ($categories->isNotEmpty())
-            <section id="categories">
-                <div class="flex items-center justify-between mb-8">
-                    <div>
-                        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Shop by Category</h2>
-                        <div class="mt-1 w-12 h-1 bg-orange-500 rounded-full"></div>
-                    </div>
-                </div>
-
-                @php
-                    $colorSets = [
-                        ['bg' => 'bg-indigo-100', 'text' => 'text-indigo-600'],
-                        ['bg' => 'bg-rose-100',   'text' => 'text-rose-600'],
-                        ['bg' => 'bg-amber-100',  'text' => 'text-amber-600'],
-                        ['bg' => 'bg-emerald-100','text' => 'text-emerald-600'],
-                        ['bg' => 'bg-violet-100', 'text' => 'text-violet-600'],
-                    ];
-                @endphp
-
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                    @foreach ($categories as $category)
-                        @php
-                            $colorSet = $colorSets[$loop->index % count($colorSets)];
-                        @endphp
-                        <a
-                            href="{{ route('storefront.category', $category->slug) }}"
-                            class="group bg-white rounded-2xl shadow-sm p-5 hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col items-center text-center"
-                        >
-                            <div class="w-14 h-14 {{ $colorSet['bg'] }} rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-200">
-                                <svg class="w-7 h-7 {{ $colorSet['text'] }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                                </svg>
-                            </div>
-                            <h3 class="font-semibold text-gray-900 text-sm group-hover:text-orange-600 transition-colors">{{ $category->name }}</h3>
-                            <p class="mt-1 text-xs text-gray-400">{{ $category->subcategories_count }} {{ Str::plural('subcategory', $category->subcategories_count) }}</p>
-                        </a>
+            {{-- Right: product image mosaic --}}
+            <div class="order-1 lg:order-2 relative">
+                {{-- Background blob --}}
+                <div class="absolute inset-0 bg-slate-100 rounded-3xl -rotate-3 scale-95 opacity-50"></div>
+                @if($products->count() >= 4)
+                <div class="relative grid grid-cols-2 gap-3 p-2">
+                    @foreach($products->take(4) as $i => $p)
+                    @php
+                        $imgSrc = $p->image
+                            ? (str_starts_with($p->image,'http') ? $p->image : Storage::disk('public')->url($p->image))
+                            : asset('images/placeholder.png');
+                    @endphp
+                    <a href="{{ route('storefront.product', $p->slug) }}"
+                       class="group relative overflow-hidden rounded-2xl bg-slate-100 aspect-square shadow-sm hover:shadow-md transition-shadow">
+                        <img src="{{ $imgSrc }}" alt="{{ $p->name }}"
+                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                             loading="{{ $i < 2 ? 'eager' : 'lazy' }}">
+                        @if($p->discount_percentage)
+                        <span class="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                            -{{ $p->discount_percentage }}%
+                        </span>
+                        @endif
+                    </a>
                     @endforeach
                 </div>
-            </section>
-        @endif
-
-        {{-- ============================================================
-             PROMOTIONAL BANNER
-        ============================================================ --}}
-        <section class="rounded-3xl bg-gradient-to-r from-orange-500 to-red-500 overflow-hidden relative">
-            <div class="absolute right-0 top-0 w-64 h-full opacity-10">
-                <div class="w-64 h-64 rounded-full bg-white absolute -top-16 -right-16"></div>
-                <div class="w-40 h-40 rounded-full bg-white absolute bottom-0 right-16"></div>
-            </div>
-            <div class="relative px-8 py-10 flex flex-col sm:flex-row items-center justify-between gap-6">
-                <div class="text-center sm:text-left">
-                    <p class="text-white text-xs font-bold uppercase tracking-widest mb-2">Limited Time Offer</p>
-                    <h3 class="text-white text-2xl sm:text-3xl font-extrabold">Up to 50% Off</h3>
-                    <p class="text-orange-100 mt-1">On select items across all categories</p>
+                @else
+                {{-- Fallback when fewer than 4 products --}}
+                <div class="relative rounded-3xl overflow-hidden aspect-square bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center">
+                    <div class="text-center p-8">
+                        <div class="text-7xl mb-4">🛍️</div>
+                        <p class="text-slate-500 font-medium">Products loading…</p>
+                    </div>
                 </div>
-                <a
-                    href="#products"
-                    class="flex-shrink-0 inline-flex items-center gap-2 bg-white text-orange-600 font-bold px-7 py-3 rounded-2xl hover:bg-orange-50 transition-colors shadow-md"
-                >
-                    Browse Deals
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-                </a>
-            </div>
-        </section>
-
-        {{-- ============================================================
-             LATEST PRODUCTS
-        ============================================================ --}}
-        <section id="products">
-            <div class="flex items-center justify-between mb-8">
-                <div>
-                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Latest Arrivals</h2>
-                    <div class="mt-1 w-12 h-1 bg-orange-500 rounded-full"></div>
-                </div>
-                @if ($categories->isNotEmpty())
-                    <a
-                        href="{{ route('storefront.category', $categories->first()->slug) }}"
-                        class="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-orange-600 hover:text-orange-700 transition-colors"
-                    >
-                        View All
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-                    </a>
                 @endif
             </div>
 
-            @if ($products->isNotEmpty())
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    @foreach ($products as $product)
-                        <x-storefront.product-card :product="$product" />
+        </div>
+    </div>
+</section>
+
+{{-- ══════════════════════════════════════════════════════════════════
+     USP / BENEFITS STRIP
+══════════════════════════════════════════════════════════════════ --}}
+<section class="border-y border-slate-200 bg-slate-50" aria-label="Benefits">
+    <div class="max-w-screen-xl mx-auto px-6 lg:px-12 py-6">
+        <div class="grid grid-cols-2 lg:grid-cols-4 divide-x divide-slate-200">
+            @foreach([
+                ['icon'=>'🚚','title'=>'Carefully Selected','desc'=>'Curated quality products'],
+                ['icon'=>'🔍','title'=>'Easy Discovery','desc'=>'Find products fast'],
+                ['icon'=>'💬','title'=>'Customer Support','desc'=>'We\'re here to help'],
+                ['icon'=>'🔒','title'=>'Secure Shopping','desc'=>'Safe & trusted experience'],
+            ] as $b)
+            <div class="flex items-center gap-3 px-4 sm:px-6 py-3 first:pl-0 last:pr-0">
+                <span class="text-2xl shrink-0" aria-hidden="true">{{ $b['icon'] }}</span>
+                <div>
+                    <p class="text-sm font-semibold text-slate-900">{{ $b['title'] }}</p>
+                    <p class="text-xs text-slate-500 mt-0.5">{{ $b['desc'] }}</p>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+</section>
+
+<div class="max-w-screen-xl mx-auto px-6 lg:px-12">
+
+    {{-- ══════════════════════════════════════════════════════════════
+         D. FEATURED CATEGORIES
+    ══════════════════════════════════════════════════════════════ --}}
+    @if($categories->isNotEmpty())
+    <section id="categories" class="py-16 lg:py-20" aria-labelledby="categories-heading">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-10">
+            <div>
+                <p class="text-xs font-semibold tracking-widest text-blue-600 uppercase mb-2">Collections</p>
+                <h2 id="categories-heading" class="text-3xl font-bold text-slate-900">Explore Categories</h2>
+                <p class="mt-2 text-slate-500 text-sm">Find exactly what you're looking for.</p>
+            </div>
+        </div>
+
+        @php
+        $palettes = [
+            ['bg'=>'bg-blue-50',   'ring'=>'ring-blue-200',   'icon'=>'bg-blue-100',   'text'=>'text-blue-600'],
+            ['bg'=>'bg-violet-50', 'ring'=>'ring-violet-200', 'icon'=>'bg-violet-100', 'text'=>'text-violet-600'],
+            ['bg'=>'bg-rose-50',   'ring'=>'ring-rose-200',   'icon'=>'bg-rose-100',   'text'=>'text-rose-600'],
+            ['bg'=>'bg-amber-50',  'ring'=>'ring-amber-200',  'icon'=>'bg-amber-100',  'text'=>'text-amber-600'],
+            ['bg'=>'bg-emerald-50','ring'=>'ring-emerald-200','icon'=>'bg-emerald-100','text'=>'text-emerald-600'],
+            ['bg'=>'bg-cyan-50',   'ring'=>'ring-cyan-200',   'icon'=>'bg-cyan-100',   'text'=>'text-cyan-600'],
+        ];
+        @endphp
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            @foreach($categories as $category)
+            @php $pal = $palettes[$loop->index % count($palettes)]; @endphp
+            <a href="{{ route('storefront.category', $category->slug) }}"
+               class="group relative {{ $pal['bg'] }} rounded-2xl p-5 ring-1 {{ $pal['ring'] }} hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col items-center text-center focus:outline-none focus:ring-2 focus:ring-blue-500">
+                {{-- Icon circle --}}
+                <div class="w-14 h-14 {{ $pal['icon'] }} rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-200">
+                    <svg class="w-7 h-7 {{ $pal['text'] }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/>
+                    </svg>
+                </div>
+                <h3 class="font-semibold text-slate-900 text-sm leading-snug group-hover:text-blue-600 transition-colors">{{ $category->name }}</h3>
+                <p class="mt-1 text-xs text-slate-500">
+                    {{ $category->products_count ?? 0 }} {{ Str::plural('product', $category->products_count ?? 0) }}
+                </p>
+            </a>
+            @endforeach
+        </div>
+    </section>
+    @endif
+
+    {{-- ══════════════════════════════════════════════════════════════
+         E. LATEST PRODUCTS
+    ══════════════════════════════════════════════════════════════ --}}
+    <section id="products" class="pb-16 lg:pb-20" aria-labelledby="products-heading">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-10">
+            <div>
+                <p class="text-xs font-semibold tracking-widest text-blue-600 uppercase mb-2">New In</p>
+                <h2 id="products-heading" class="text-3xl font-bold text-slate-900">Discover Our Products</h2>
+                <p class="mt-2 text-slate-500 text-sm">The latest additions across all categories.</p>
+            </div>
+            @if($categories->isNotEmpty())
+            <a href="{{ route('storefront.category', $categories->first()->slug) }}"
+               class="self-start sm:self-auto inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors shrink-0">
+                View all products
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                </svg>
+            </a>
+            @endif
+        </div>
+
+        @if($products->isNotEmpty())
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+            @foreach($products as $product)
+                <x-storefront.product-card :product="$product" />
+            @endforeach
+        </div>
+        @else
+        <x-empty-state
+            icon="📦"
+            title="No products yet"
+            description="Products are being added. Check back soon."
+        >
+            <a href="{{ route('home') }}" class="text-sm text-blue-600 hover:text-blue-700 font-medium">Refresh page</a>
+        </x-empty-state>
+        @endif
+    </section>
+
+    {{-- ══════════════════════════════════════════════════════════════
+         F. PROMOTIONAL BANNER
+    ══════════════════════════════════════════════════════════════ --}}
+    <section class="mb-16 lg:mb-20" aria-label="Promotion">
+        <div class="relative overflow-hidden rounded-2xl bg-blue-600">
+            {{-- Subtle pattern overlay --}}
+            <div class="absolute inset-0 opacity-[0.07]" aria-hidden="true"
+                 style="background-image:radial-gradient(circle at 1px 1px, white 1px, transparent 0);background-size:28px 28px;"></div>
+            {{-- Decorative blobs --}}
+            <div class="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-blue-500 opacity-40" aria-hidden="true"></div>
+            <div class="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-blue-700 opacity-40" aria-hidden="true"></div>
+
+            <div class="relative px-8 py-12 sm:py-16 flex flex-col sm:flex-row items-center justify-between gap-8 text-center sm:text-left">
+                <div>
+                    <p class="text-blue-200 text-xs font-semibold uppercase tracking-widest mb-3">Our Collections</p>
+                    <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-white leading-tight">
+                        Explore Our Collections
+                    </h2>
+                    <p class="mt-3 text-blue-100 text-sm sm:text-base max-w-md">
+                        Find the right product for your needs across {{ $categories->count() }} carefully curated categories.
+                    </p>
+                </div>
+                <a href="#categories"
+                   class="shrink-0 inline-flex items-center gap-2 bg-white text-blue-600 hover:bg-slate-50 font-semibold px-7 py-3.5 rounded-lg text-sm transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600">
+                    Shop Now
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    {{-- ══════════════════════════════════════════════════════════════
+         G. SUBCATEGORY BROWSER
+    ══════════════════════════════════════════════════════════════ --}}
+    @if($categories->isNotEmpty())
+    <section class="pb-16 lg:pb-20" aria-labelledby="subcategories-heading">
+        <div class="mb-8">
+            <p class="text-xs font-semibold tracking-widest text-blue-600 uppercase mb-2">Browse</p>
+            <h2 id="subcategories-heading" class="text-3xl font-bold text-slate-900">Shop by Subcategory</h2>
+            <p class="mt-2 text-slate-500 text-sm">Dive deeper into any collection.</p>
+        </div>
+
+        <div class="space-y-8">
+            @foreach($categories->take(4) as $category)
+            @if($category->subcategories->isNotEmpty())
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-semibold text-slate-900 text-base">{{ $category->name }}</h3>
+                    <a href="{{ route('storefront.category', $category->slug) }}"
+                       class="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors flex items-center gap-1">
+                        View all
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    @foreach($category->subcategories as $sub)
+                    <a href="{{ route('storefront.subcategory', [$category->slug, $sub->slug]) }}"
+                       class="inline-flex items-center gap-1.5 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-xs font-medium px-3.5 py-1.5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        {{ $sub->name }}
+                        @if($sub->products_count ?? null)
+                        <span class="text-slate-400 text-[10px]">{{ $sub->products_count }}</span>
+                        @endif
+                    </a>
                     @endforeach
                 </div>
-            @else
-                <x-empty-state
-                    title="No products yet"
-                    description="Products are being added. Please check back soon."
-                    icon="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                />
+            </div>
             @endif
-        </section>
+            @endforeach
+        </div>
+    </section>
+    @endif
 
-        {{-- ============================================================
-             NEWSLETTER STRIP
-        ============================================================ --}}
-        <section class="rounded-3xl bg-indigo-600 px-8 py-12 text-center">
-            <h3 class="text-2xl sm:text-3xl font-bold text-white">Stay in the Loop</h3>
-            <p class="mt-2 text-indigo-200 max-w-md mx-auto">Subscribe to our newsletter and get the best deals delivered to your inbox.</p>
-            <form class="mt-6 flex flex-col sm:flex-row gap-3 max-w-md mx-auto" onsubmit="return false;">
-                <input
-                    type="email"
-                    placeholder="Enter your email address"
-                    class="flex-1 rounded-xl px-4 py-3 text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white"
-                >
-                <button
-                    type="submit"
-                    class="bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 py-3 rounded-xl transition-colors flex-shrink-0"
-                >
-                    Subscribe
-                </button>
-            </form>
-        </section>
+</div>{{-- /max-w-screen-xl --}}
 
+{{-- ══════════════════════════════════════════════════════════════════
+     H. FULL-WIDTH TRUST SECTION
+══════════════════════════════════════════════════════════════════ --}}
+<section class="bg-slate-50 border-t border-slate-200 py-16 lg:py-20" aria-labelledby="trust-heading">
+    <div class="max-w-screen-xl mx-auto px-6 lg:px-12">
+        <div class="text-center mb-12">
+            <h2 id="trust-heading" class="text-3xl font-bold text-slate-900">Why Shop With Us?</h2>
+            <p class="mt-2 text-slate-500 text-sm">We're committed to making your shopping experience the best it can be.</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            @foreach([
+                ['icon'=>'🎯','title'=>'Curated Selection','body'=>'Every product is carefully reviewed and selected to meet our quality standards.'],
+                ['icon'=>'🔍','title'=>'Easy to Discover','body'=>'Organised categories and subcategories make finding the right product simple.'],
+                ['icon'=>'💬','title'=>'Responsive Support','body'=>'Have a question? Our team is ready to assist you at any time.'],
+                ['icon'=>'🛡️','title'=>'Secure Experience','body'=>'Shop with confidence knowing your session and data are protected.'],
+            ] as $t)
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm text-center hover:shadow-md transition-shadow">
+                <div class="text-4xl mb-4" aria-hidden="true">{{ $t['icon'] }}</div>
+                <h3 class="font-semibold text-slate-900 text-sm mb-2">{{ $t['title'] }}</h3>
+                <p class="text-xs text-slate-500 leading-relaxed">{{ $t['body'] }}</p>
+            </div>
+            @endforeach
+        </div>
     </div>
+</section>
 
 @endsection
