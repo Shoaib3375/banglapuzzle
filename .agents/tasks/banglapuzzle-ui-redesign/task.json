@@ -1,0 +1,7 @@
+{
+  "task_id": "task-banglapuzzle-ui-redesign",
+  "task_description": "Premium frontend-only UI/UX redesign of BanglaPuzzle Laravel app. Creates 7 shared Blade components, rewrites 2 layout files, 10 admin views, and 4 storefront views. No backend changes. 55 existing tests must keep passing.",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

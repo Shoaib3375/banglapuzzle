@@ -1,308 +1,202 @@
-# Implementation Plan — BanglaPuzzle Premium UI/UX Redesign
+# Implementation Plan — Product Slug & SEO URL Management
 
-> **FRONTEND-ONLY**: No controllers, models, routes, migrations, Form Requests, or tests are touched.  
-> **Tailwind v4** — no `tailwind.config.js`, no arbitrary bracket values.  
-> **55 existing tests must continue to pass.**
+## Design Decisions
+
+**Decision 1 — Boot auto-slug vs. service.**
+Remove the `creating`/`updating` hooks from `Product::boot()` entirely. The controller will always call `ProductSlugService` before `Product::create()` or `$product->update()`. This prevents double-slug generation (boot() would fire even when a slug is already set), gives the service sole responsibility for slug normalization, and makes the flow easier to test. The boot() method still exists but only if there is other logic; if there is nothing left, remove it entirely. The `generateUniqueSlug()` static helper on the model can also be removed once the service exists.
+
+**Decision 2 — check-slug route placement.**
+Add `GET admin/products/check-slug` as a named explicit route (`admin.products.checkSlug`) *before* `Route::resource('products', ...)` inside the auth+admin middleware group. Laravel matches routes top-down; putting it before the resource prevents the string `check-slug` from being captured as `{product}` by `products.show`.
+
+**Decision 3 — Uniqueness check across both tables.**
+`ProductSlugService::makeUnique()` queries both `products.slug` (excluding the current product ID on updates) AND `product_slug_histories.old_slug`. This prevents reusing a slug that previously pointed elsewhere, which would break existing 301-bookmarked URLs.
+
+**Decision 4 — StorefrontController redirect flow.**
+Change `StorefrontController::product()` from `firstOrFail()` to `first()`. If no live product matches the slug, query `product_slug_histories` for the slug. If found, resolve the current product and issue a `redirect()->to(route('storefront.product', $product->slug), 301)`. Return 404 only if neither table matches.
+
+**Decision 5 — SQLite-compatible migration.**
+The `product_slug_histories` migration uses `$table->unsignedBigInteger('product_id')` + `$table->foreign('product_id')` with `->references('id')->on('products')->onDelete('cascade')`. This is the same pattern used in the existing products migration and is SQLite-compatible.
+
+**Decision 6 — Create form JS: input event, not blur.**
+Replace the existing `blur` listener on the name field with an `input` listener so the slug auto-generates in real time. Track a boolean `slugManuallyEdited`; once the admin edits the slug field directly, stop auto-generating. The URL preview div updates on every slug `input` event. Availability check fires on slug `blur` (debounced, skips if slug is empty or identical to the last checked value).
+
+**Decision 7 — Edit form JS: slug locked from load.**
+On the edit form, `slugManuallyEdited` is initialised to `true` (slug already exists). Name changes never overwrite the slug. Show a warning banner when the slug field value differs from the original loaded value. Availability check on blur passes `?exclude_id={{ $product->id }}`.
+
+**Decision 8 — Storefront layout canonical tag.**
+The storefront layout already contains `<link rel="canonical" href="{{ url()->current() }}">`. No layout change is needed for the canonical. Add `og:url` in the product view's `@section('og_tags')` using `route('storefront.product', $product->slug)`.
 
 ---
 
-## Design System Decisions
+## Implementation Order
 
-- **Color palette**: white sidebar (`bg-white`), slate-50 content area (`bg-slate-50`), `blue-600` primary CTA replacing the existing `indigo-600`, `emerald-*` for active/success badges, `red-*` for inactive/danger badges.
-- **Cards**: `rounded-xl shadow-sm` throughout admin; `rounded-2xl shadow-sm` on storefront cards (matching existing product card convention).
-- **Admin layout**: Keep the sidebar-left + topbar pattern that already exists; upgrade sidebar from `bg-indigo-800` to `bg-white border-r border-slate-200` (light sidebar, premium feel).
-- **Storefront layout**: Keep existing structure; upgrade nav and hero sections.
-- **Components**: Seven shared Blade components extracted so every page can use them consistently.
-- **Flash keys**: `session('success')` / `session('error')` — exactly as existing layout.
-- **Image logic**: THREE-CASE: `str_starts_with($product->image, 'http') ? … : ($product->image ? Storage::disk('public')->url($product->image) : asset('images/placeholder.png'))`.
-- **`$navCategories`**: shared via `View::composer('layouts.storefront', …)` in `AppServiceProvider`. Available automatically in `layouts/storefront.blade.php` only.
+- [ ] 1. Create the `ProductSlugHistory` migration.
+      Create `database/migrations/2025_01_01_000005_create_product_slug_histories_table.php`.
+      Columns: `id` (bigIncrements), `product_id` (unsignedBigInteger), `old_slug` (string, unique), `timestamps`.
+      Foreign key: `product_id` → `products.id` onDelete cascade (using the manual `->foreign()` pattern matching the products migration for SQLite compatibility).
+      Add index on `old_slug` for redirect lookups.
+      Files: `database/migrations/2025_01_01_000005_create_product_slug_histories_table.php`
+      Verify: `php artisan migrate --env=testing` runs without error (SQLite in-memory); or run `php artisan test --compact` — RefreshDatabase will apply all migrations.
 
----
+- [ ] 2. Create the `ProductSlugHistory` model.
+      Use `php artisan make:model ProductSlugHistory --no-interaction`.
+      Set `$fillable = ['product_id', 'old_slug']`.
+      Add `belongsTo(Product::class)` relationship.
+      Files: `app/Models/ProductSlugHistory.php`
+      Verify: `php artisan tinker --execute 'echo App\Models\ProductSlugHistory::class;'` — no error.
 
-## Step-by-Step Plan
+- [ ] 3. Add the `slugHistories` relationship to the `Product` model and remove boot auto-slug logic.
+      In `app/Models/Product.php`:
+      - Remove the entire `boot()` method (both `creating` and `updating` hooks).
+      - Remove the `generateUniqueSlug()` static method (will be replaced by the service).
+      - Add `public function slugHistories(): HasMany { return $this->hasMany(ProductSlugHistory::class); }` with the correct import.
+      Files: `app/Models/Product.php`
+      Verify: `php artisan test --compact tests/Feature/Admin/ProductCrudTest.php` — all existing product CRUD tests still pass (slug is now set by controller before create).
 
-- [ ] 1. **Create `resources/views/components/badge.blade.php`**  
-      A reusable inline badge. Accepts: `$variant` (emerald|red|blue|gray, default=gray), `$text` (string).  
-      Renders `<span>` with `rounded-full px-2.5 py-0.5 text-xs font-semibold` plus variant-specific color classes:  
-      - `emerald` → `bg-emerald-100 text-emerald-700`  
-      - `red` → `bg-red-100 text-red-700`  
-      - `blue` → `bg-blue-100 text-blue-700`  
-      - `gray` → `bg-slate-100 text-slate-600`  
-      Files: `resources/views/components/badge.blade.php`  
-      Verify: `php artisan test --compact` — all 55 tests still pass.
+- [ ] 4. Create `ProductSlugService`.
+      Create `app/Services/ProductSlugService.php` with these public methods:
+      - `generate(string $name): string` — calls `Str::slug($name)`, returns `'product'` if result is empty.
+      - `normalize(string $slug): string` — lowercases, replaces non-`[a-z0-9]` runs with `-`, trims hyphens, collapses consecutive hyphens. This is the canonical normalizer used on all inputs.
+      - `makeUnique(string $base, ?int $excludeProductId = null): string` — queries `products.slug` (excluding `$excludeProductId`) AND `product_slug_histories.old_slug`; if `$base` is free in both tables, returns it; otherwise appends `-2`, `-3`, etc. until a free slug is found.
+      - `generateUnique(string $name, ?int $excludeProductId = null): string` — calls `generate()` then `makeUnique()`.
+      - `resolveForStore(string $name, ?string $submittedSlug): string` — if `$submittedSlug` is non-empty, normalize it then call `makeUnique()`; else call `generateUnique($name)`.
+      - `resolveForUpdate(string $name, ?string $submittedSlug, string $existingSlug, int $productId): string` — if `$submittedSlug` is non-empty and differs from `$existingSlug` after normalization, normalize then `makeUnique($normalized, $productId)`; if same as existing (or empty), return `$existingSlug` unchanged.
+      Files: `app/Services/ProductSlugService.php`
+      Verify: Unit test in step 12 covers this; for a quick smoke test run `php artisan tinker --execute 'echo app(\App\Services\ProductSlugService::class)->generate("iPhone 17 Pro Max");'` — should print `iphone-17-pro-max`.
 
-- [ ] 2. **Create `resources/views/components/alert.blade.php`**  
-      Dismissible alert bar. Accepts: `$type` (success|error), `$message` (string).  
-      Uses Tailwind utility classes:  
-      - `success` → `bg-emerald-50 border border-emerald-200 text-emerald-800`  
-      - `error` → `bg-red-50 border border-red-200 text-red-700`  
-      Include a dismiss button (`×`) using plain JS (`this.closest('[role=alert]').remove()`).  
-      Files: `resources/views/components/alert.blade.php`  
-      Verify: `php artisan test --compact`
+- [ ] 5. Update `StoreProductRequest` form request.
+      In `app/Http/Requests/Admin/StoreProductRequest.php`:
+      - Change the `name` max from 150 to 255 to match the task spec (keep existing `required|string`).
+      - Change the slug rule from `['nullable', 'string', 'unique:products,slug']` to `['nullable', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/']`. Remove the `unique` rule from the Form Request — uniqueness is enforced by the service before this point, and the DB unique constraint is the final backstop. Keeping a unique rule here would reject a slug the service already made unique, and would also reject an empty slug (which is valid and triggers auto-generation).
+      - Keep all other rules unchanged.
+      Files: `app/Http/Requests/Admin/StoreProductRequest.php`
+      Verify: `php artisan test --compact tests/Feature/Admin/ProductCrudTest.php` — all tests pass.
 
-- [ ] 3. **Create `resources/views/components/empty-state.blade.php`**  
-      Centered empty-state card. Accepts: `$title`, `$description`, `$icon` (SVG path data string), `$actionLabel` (optional), `$actionUrl` (optional).  
-      Renders: `bg-white rounded-2xl shadow-sm p-16 text-center` with icon circle, heading, text, and optional link button.  
-      Files: `resources/views/components/empty-state.blade.php`  
-      Verify: `php artisan test --compact`
+- [ ] 6. Update `UpdateProductRequest` form request.
+      In `app/Http/Requests/Admin/UpdateProductRequest.php`:
+      - Apply the same slug rule change as step 5: `['nullable', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/']`. Remove the `Rule::unique(...)->ignore(...)` — uniqueness handled by the service + DB constraint.
+      - Keep all other rules unchanged.
+      Files: `app/Http/Requests/Admin/UpdateProductRequest.php`
+      Verify: `php artisan test --compact tests/Feature/Admin/ProductCrudTest.php` — all tests pass.
 
-- [ ] 4. **Create `resources/views/components/admin/stat-card.blade.php`**  
-      Dashboard stat tile. Accepts: `$label`, `$value`, `$subtext` (optional), `$iconPath` (SVG path d= string), `$iconBg` (Tailwind bg class, e.g. `bg-blue-100`), `$iconColor` (Tailwind text class, e.g. `text-blue-600`).  
-      Renders: `bg-white rounded-xl shadow-sm p-6 flex items-center gap-4` with icon circle + numeric value + sub-label.  
-      Files: `resources/views/components/admin/stat-card.blade.php`  
-      Verify: `php artisan test --compact`
+- [ ] 7. Update `ProductController` — inject service, update `store`, `update`, add `checkSlug`.
+      In `app/Http/Controllers/Admin/ProductController.php`:
+      - Add `ProductSlugService` as a constructor-injected readonly property alongside `ProductImageService`.
+      - **`store()`**: Replace the inline `Product::generateUniqueSlug()` call with `$data['slug'] = $this->slugService->resolveForStore($data['name'], $data['slug'] ?? null);` before the DB transaction. This sets the slug in `$data` before `Product::create($data)`.
+      - **`update()`**: Inside the DB transaction, before `$product->update($data)`:
+        1. Capture `$oldSlug = $product->slug`.
+        2. Call `$data['slug'] = $this->slugService->resolveForUpdate($data['name'], $data['slug'] ?? null, $oldSlug, $product->id);`.
+        3. If `$data['slug'] !== $oldSlug`, create a `ProductSlugHistory` record: `ProductSlugHistory::create(['product_id' => $product->id, 'old_slug' => $oldSlug]);`. Wrap the history insert inside the same transaction so it rolls back if the product update fails.
+      - **`checkSlug()` (new method)**: Accepts `Request $request`. Reads `$request->input('slug')` and `$request->input('exclude_id')`. Normalizes the slug via the service. Queries `products` table (excluding `exclude_id` if present) for slug existence, also checks `product_slug_histories.old_slug`. Returns `response()->json(['available' => $isAvailable, 'normalized' => $normalizedSlug])`.
+      - Import `ProductSlugHistory` model and `ProductSlugService`.
+      Files: `app/Http/Controllers/Admin/ProductController.php`
+      Verify: `php artisan test --compact tests/Feature/Admin/ProductCrudTest.php` — all existing tests still pass.
 
-- [ ] 5. **Create `resources/views/components/admin/page-header.blade.php`**  
-      Page header row. Accepts: `$title`, `$createRoute` (optional named route string), `$createLabel` (optional, default `+ New`).  
-      Renders a `<div class="flex items-center justify-between mb-6">` with an `<h2>` title on the left and an optional blue CTA button (linking to `route($createRoute)`) on the right.  
-      Files: `resources/views/components/admin/page-header.blade.php`  
-      Verify: `php artisan test --compact`
-
-- [ ] 6. **Create `resources/views/components/storefront/product-card.blade.php`**  
-      Storefront product card (replaces existing `storefront/partials/product-card.blade.php`).  
-      Accepts: `$product` (Product model).  
-      Must use THREE-CASE image logic:  
+- [ ] 8. Register the `checkSlug` route in `routes/web.php`.
+      Inside the admin middleware group, add this route **before** `Route::resource('products', ...)`:
       ```php
-      $imageUrl = str_starts_with($product->image, 'http')
-          ? $product->image
-          : ($product->image
-              ? Storage::disk('public')->url($product->image)
-              : asset('images/placeholder.png'));
-      ```  
-      Renders: hover lift card with aspect-square image, discount badge, category label, product name, price row with strikethrough old price, orange "View Details" CTA.  
-      Link: `route('storefront.product', $product->slug)`.  
-      Exact design tokens: `rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all`.  
-      Files: `resources/views/components/storefront/product-card.blade.php`  
-      Verify: `php artisan test --compact`
+      Route::get('products/check-slug', [ProductController::class, 'checkSlug'])
+          ->name('products.checkSlug');
+      ```
+      Files: `routes/web.php`
+      Verify: `php artisan route:list --name=products.checkSlug` shows the route; `php artisan route:list --name=admin.products.show` still shows the resource route. Also run `php artisan test --compact` — all 55 tests pass.
 
-- [ ] 7. **Create `resources/views/components/storefront/breadcrumb.blade.php`**  
-      Multi-level breadcrumb. Accepts: `$items` (array of `['label' => string, 'url' => string|null]`).  
-      Renders `<nav aria-label="Breadcrumb">` with `›` separators. Last item has no link and uses `text-white` or `text-gray-700` (caller controls via a `$dark` bool prop: default `false` = light on dark hero, `true` = dark on white bg).  
-      Files: `resources/views/components/storefront/breadcrumb.blade.php`  
-      Verify: `php artisan test --compact`
+- [ ] 9. Update `StorefrontController::product()` with 301 redirect logic.
+      In `app/Http/Controllers/StorefrontController.php`:
+      - Add `use App\Models\ProductSlugHistory;` import.
+      - Change the `product()` method to use `first()` instead of `firstOrFail()`.
+      - After `first()` returns `null`, query `ProductSlugHistory::where('old_slug', $slug)->with('product')->first()`. If found and the product is still active (recheck `is_active`, category active, subcategory active), return `redirect()->to(route('storefront.product', $history->product->slug), 301)`. Otherwise abort(404).
+      - If the initial `first()` returns a product, proceed as before.
+      Files: `app/Http/Controllers/StorefrontController.php`
+      Verify: `php artisan test --compact tests/Feature/StorefrontTest.php` — all existing storefront tests pass (they use live slugs so they never hit the redirect path). New tests in step 12 cover the redirect.
 
-- [ ] 8. **Rewrite `resources/views/layouts/admin.blade.php`**  
-      Full rewrite. Keep all existing `@yield`/`@stack` slot names:  
-      - `@yield('title')` in `<title>`  
-      - `@yield('page-title')` in topbar h1  
-      - `@yield('content')` in `<main>`  
-      - `@stack('scripts')` before `</body>`  
-      New design:  
-      - Body: `bg-slate-50 min-h-screen flex`  
-      - Sidebar: `w-64 min-h-screen bg-white border-r border-slate-200 flex flex-col shrink-0`  
-      - Brand area: logo mark (blue-600 square icon) + "BanglaPuzzle" text + "Admin" chip  
-      - Nav links: active = `bg-blue-50 text-blue-700 font-semibold`, idle = `text-slate-600 hover:bg-slate-100`; keep all four routes: dashboard, categories, subcategories, products  
-      - Logout form at bottom: `POST admin.logout` + `@csrf`  
-      - Topbar: `bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between`  
-      - Topbar right: `Auth::user()->name` in a small avatar chip  
-      - Flash: use `<x-alert>` component for `session('success')` and `session('error')`  
-      - `@vite(['resources/css/app.css', 'resources/js/app.js'])` in `<head>`  
-      Files: `resources/views/layouts/admin.blade.php`  
-      Verify: `php artisan test --compact`
+- [ ] 10. Update the admin `create.blade.php` with SEO & URL Settings section.
+      Replace the current simple slug field `<div class="mb-5">…</div>` block (and its surrounding context) with a full "SEO & URL Settings" card section. Insert it between the Name field and the Description field. The section must contain:
+      - A card header: "SEO & URL Settings".
+      - **Slug input**: `id="slug"`, `name="slug"`, monospace font, `value="{{ old('slug') }}"`, with a "Manual" badge (`id="slug-manual-badge"`, hidden by default) that appears once the admin edits the slug directly, an `@error('slug')` block below.
+      - **URL preview div** (`id="slug-url-preview"`): shows `<span id="slug-url-text"></span>` beneath the slug input. Initially populated from `url('/product/')` + the current slug value. Label: "Product URL Preview".
+      - **Availability indicator** (`id="slug-availability"`): hidden span that shows "✓ Available" (green) or "✗ Already in use" (red) after an AJAX check. Only appears after user interaction.
+      Replace the existing `@push('scripts')` block's slug logic entirely. New JS behaviour:
+      - `slugManuallyEdited = false` on load (or `= true` if `old('slug')` is non-empty from a failed submit).
+      - Name `input` event: if `!slugManuallyEdited`, compute slug via `toSlug(value)`, set `slugInput.value`, update URL preview, clear availability indicator.
+      - Slug `input` event: set `slugManuallyEdited = true`, show manual badge, update URL preview, clear availability indicator.
+      - Slug `blur` event: if slug is non-empty, call `checkSlugAvailability()` via `fetch` to `{{ route('admin.products.checkSlug') }}?slug=VALUE`.
+      - `toSlug(str)` function: `str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')`.
+      - URL preview base: `const baseUrl = '{{ url('/product/') }}/';` — use the Laravel `url()` helper, not a hardcoded domain.
+      - Initialise preview on page load from `old('slug')` or empty slug with name if `old('name')` is present.
+      Files: `resources/views/admin/products/create.blade.php`
+      Verify: Load the create form in the browser (`GET /admin/products/create`) — the SEO section renders. Verify `php artisan test --compact tests/Feature/Admin/ProductCrudTest.php` — `test_admin_can_view_create_form` passes.
 
-- [ ] 9. **Rewrite `resources/views/layouts/storefront.blade.php`**  
-      Full rewrite. Keep existing slot names:  
-      - `@yield('meta_title')`, `@yield('meta_description')`, `@yield('og_tags')`, `@yield('content')`, `@stack('scripts')`  
-      - `$navCategories` is available via `View::composer` — do not add it to the controller  
-      Preserve existing structure: topbar → sticky header → flash → `<main>` → footer.  
-      Upgrade: richer logo treatment, upgraded mobile hamburger, flash via `<x-alert>` component.  
-      Topbar: `bg-slate-900 text-slate-400 text-xs h-9`.  
-      Header: `bg-white shadow-sm sticky top-0 z-50`.  
-      Keep mobile toggle JS (`nav-toggle` / `mobile-nav` ids) identical so existing views work.  
-      Footer: three-column grid preserved.  
-      Files: `resources/views/layouts/storefront.blade.php`  
-      Verify: `php artisan test --compact`
+- [ ] 11. Update the admin `edit.blade.php` with SEO & URL Settings section and slug-change warning.
+      Apply the same SEO & URL Settings card replacement as step 10, but with these differences:
+      - `value="{{ old('slug', $product->slug) }}"` (pre-filled).
+      - `slugManuallyEdited = true` on load (slug already exists, name changes must never overwrite it).
+      - Add a warning banner (`id="slug-change-warning"`, hidden by default): "⚠ Changing this URL will create a 301 redirect from the old URL. Visitors and search engines will be sent to the new URL automatically." Show it whenever the slug input value differs from `originalSlug`.
+      - The availability check fetch appends `&exclude_id={{ $product->id }}`.
+      - URL preview shows the current live URL on load.
+      - Name `input` event: does NOT update slug (because `slugManuallyEdited` starts `true`). The name field is still editable; just slug is decoupled.
+      Files: `resources/views/admin/products/edit.blade.php`
+      Verify: Load edit form — SEO section shows pre-filled slug, warning is hidden. Run `php artisan test --compact tests/Feature/Admin/ProductCrudTest.php` — `test_admin_can_view_edit_form` passes.
 
-- [ ] 10. **Rewrite `resources/views/admin/auth/login.blade.php`**  
-       Standalone page (no layout extends — already standalone in current code).  
-       Keep: `@vite`, `POST admin.login.post`, `@csrf`, `email`/`password`/`remember` fields with `old()` values, `session('error')` + `$errors->any()` display.  
-       New design: full-height split layout or centered card.  
-       Use `<x-alert>` component for error messages.  
-       Error field styling: `@error('email') border-red-400 @enderror`.  
-       Files: `resources/views/admin/auth/login.blade.php`  
-       Verify: `php artisan test --compact`
+- [ ] 12. Add SEO metadata to `storefront/product.blade.php`.
+      In `@section('og_tags')`, add `<meta property="og:url" content="{{ route('storefront.product', $product->slug) }}">` after the existing `og:type` tag.
+      The canonical tag is already handled by the layout (`<link rel="canonical" href="{{ url()->current() }}">`), so no further change is needed in the layout.
+      Files: `resources/views/storefront/product.blade.php`
+      Verify: `php artisan test --compact tests/Feature/StorefrontTest.php` — all storefront tests pass.
 
-- [ ] 11. **Rewrite `resources/views/admin/dashboard/index.blade.php`**  
-       Extends `layouts.admin`. Sections: `title` = "Dashboard", `page-title` = "Dashboard".  
-       Variables: `$categoryCount`, `$activeCategoryCount`, `$subcategoryCount`, `$productCount`, `$activeProductCount`, `$inactiveProductCount` (all from DashboardController).  
-       Use `<x-admin.stat-card>` for each of the 5 stats.  
-       Stat card parameters:  
-       - Total Categories: `$label="Total Categories"`, `$value=$categoryCount`, `$subtext="$activeCategoryCount active"`, blue  
-       - Total Subcategories: `$label="Subcategories"`, `$value=$subcategoryCount`, purple  
-       - Total Products: `$label="Total Products"`, `$value=$productCount`, blue  
-       - Active Products: `$label="Active Products"`, `$value=$activeProductCount`, emerald  
-       - Inactive Products: `$label="Inactive Products"`, `$value=$inactiveProductCount`, red  
-       Add quick-action links row (→ Categories, → Products, → Subcategories).  
-       Files: `resources/views/admin/dashboard/index.blade.php`  
-       Verify: `php artisan test --compact`
+- [ ] 13. Write the `ProductSlugServiceTest` unit test.
+      Use `php artisan make:test --phpunit --unit ProductSlugServiceTest --no-interaction`.
+      Test cases (all use `RefreshDatabase` via a Feature test sub-class is fine, but since this queries the DB, make it a Feature test — `php artisan make:test --phpunit ProductSlugServiceTest --no-interaction`):
+      - `test_generate_produces_correct_slug`: `'iPhone 17 Pro Max'` → `'iphone-17-pro-max'`.
+      - `test_generate_handles_special_chars`: `"Men's Casual Shirt"` → `'mens-casual-shirt'`.
+      - `test_generate_returns_product_for_empty_name`: empty string → `'product'`.
+      - `test_normalize_collapses_consecutive_hyphens`: `'hello--world'` → `'hello-world'`.
+      - `test_normalize_trims_leading_trailing_hyphens`: `'-hello-world-'` → `'hello-world'`.
+      - `test_make_unique_appends_suffix_for_duplicate`: Create a product with slug `'widget'`; `makeUnique('widget')` returns `'widget-2'`.
+      - `test_make_unique_skips_history_slugs`: Create a product slug history row with `old_slug = 'widget-old'`; `makeUnique('widget-old')` returns `'widget-old-2'`.
+      - `test_make_unique_excludes_current_product_on_update`: Create product with slug `'widget'`; `makeUnique('widget', $product->id)` returns `'widget'` (not a duplicate of itself).
+      - `test_resolve_for_store_uses_submitted_slug_when_provided`: `resolveForStore('Widget', 'my-slug')` returns `'my-slug'`.
+      - `test_resolve_for_store_generates_from_name_when_slug_empty`: `resolveForStore('Widget', '')` returns `'widget'`.
+      - `test_resolve_for_update_preserves_slug_when_not_changed`: existing slug `'widget'`; `resolveForUpdate('Widget', 'widget', 'widget', $id)` returns `'widget'`.
+      - `test_resolve_for_update_uses_new_slug_when_changed`: `resolveForUpdate('Widget', 'widget-premium', 'widget', $id)` returns `'widget-premium'`.
+      Files: `tests/Feature/ProductSlugServiceTest.php`
+      Verify: `php artisan test --compact tests/Feature/ProductSlugServiceTest.php` — all new tests pass.
 
-- [ ] 12. **Rewrite `resources/views/admin/categories/index.blade.php`**  
-       Extends `layouts.admin`. Sections: `title` = "Categories", `page-title` = "Categories".  
-       Variables: `$categories` (paginated, has `subcategories_count`, `products_count`, `id`, `name`, `slug`, `is_active`).  
-       Use `<x-admin.page-header>` with `createRoute="admin.categories.create"` and `createLabel="+ New Category"`.  
-       Search form: `GET admin.categories.index` with `name=search` input and clear link when `request('search')` is set.  
-       Table: `bg-white rounded-xl shadow-sm overflow-hidden` — columns: #, Name, Slug, Subcategories, Products, Status, Actions.  
-       Status toggle: `POST admin.categories.toggleActive` + `@csrf` — use `<x-badge>` with `variant=emerald` for active, `variant=red` for inactive.  
-       Edit: `GET admin.categories.edit`.  
-       Delete: `POST admin.categories.destroy` + `@csrf` + `@method('DELETE')` + `onsubmit confirm()`.  
-       Empty state: `<x-empty-state>` component.  
-       Pagination: `$categories->links()` when `$categories->hasPages()`.  
-       Files: `resources/views/admin/categories/index.blade.php`  
-       Verify: `php artisan test --compact`
+- [ ] 14. Write the `ProductSlugRedirectTest` feature test.
+      Use `php artisan make:test --phpunit ProductSlugRedirectTest --no-interaction`.
+      Test cases:
+      - `test_old_slug_redirects_301_to_current_slug`: Create product with slug `'widget-old'`; update it to slug `'widget-new'` (which creates a history row); `GET /product/widget-old` returns 301 redirecting to `/product/widget-new`.
+      - `test_unknown_slug_returns_404`: `GET /product/does-not-exist` returns 404.
+      - `test_current_slug_returns_200`: `GET /product/widget-new` returns 200.
+      - `test_redirect_does_not_fire_for_inactive_product`: Create product, update slug (creates history), deactivate product; `GET /product/old-slug` returns 404 (not 301).
+      - `test_product_slug_history_saved_on_slug_change`: Programmatically update product slug via the admin `PUT` endpoint; assert `product_slug_histories` table has the old slug.
+      - `test_product_slug_history_not_saved_when_slug_unchanged`: Programmatically update product name only (slug stays the same); assert `product_slug_histories` table has zero rows.
+      Files: `tests/Feature/ProductSlugRedirectTest.php`
+      Verify: `php artisan test --compact tests/Feature/ProductSlugRedirectTest.php` — all new tests pass.
 
-- [ ] 13. **Rewrite `resources/views/admin/categories/create.blade.php`**  
-       Extends `layouts.admin`. Sections: `title` = "Create Category", `page-title` = "Create Category".  
-       No variables from controller (create() passes nothing).  
-       Form: `POST admin.categories.store` + `@csrf`.  
-       Fields: `name` (required, maxlength=100), `slug` (optional, maxlength=120, font-mono), `description` (textarea, rows=3), `is_active` checkbox (default checked via `old('is_active', '1')`).  
-       All `@error` blocks with `border-red-400` styling.  
-       Back link → `admin.categories.index`.  
-       JS: `@push('scripts')` — slug autofill from name on blur (if slug is empty).  
-       Files: `resources/views/admin/categories/create.blade.php`  
-       Verify: `php artisan test --compact`
-
-- [ ] 14. **Rewrite `resources/views/admin/categories/edit.blade.php`**  
-       Extends `layouts.admin`. Sections: `title` = "Edit Category", `page-title` = "Edit Category".  
-       Variables: `$category` (Category model with `id`, `name`, `slug`, `description`, `is_active`).  
-       Form: `POST admin.categories.update($category)` + `@csrf` + `@method('PUT')`.  
-       Fields: same as create but pre-populated with `old('field', $category->field)`.  
-       Back link → `admin.categories.index`.  
-       JS: `@push('scripts')` — slug autofill on blur.  
-       Files: `resources/views/admin/categories/edit.blade.php`  
-       Verify: `php artisan test --compact`
-
-- [ ] 15. **Rewrite `resources/views/admin/subcategories/index.blade.php`**  
-       Extends `layouts.admin`. Sections: `title` = "Subcategories", `page-title` = "Subcategories".  
-       Variables: `$subcategories` (paginated, with `category` eager-loaded), `$categories` (all, for filter dropdown).  
-       Use `<x-admin.page-header>` with `createRoute="admin.subcategories.create"`.  
-       Category filter: `<select name="category_id" onchange="this.form.submit()">` in GET form + clear link.  
-       Table: columns: #, Name, Category, Slug, Status, Actions.  
-       Status toggle: `POST admin.subcategories.toggleActive` + `@csrf` — use `<x-badge>`.  
-       Edit/Delete actions: same pattern as categories index.  
-       Empty state: `<x-empty-state>`.  
-       Pagination.  
-       Files: `resources/views/admin/subcategories/index.blade.php`  
-       Verify: `php artisan test --compact`
-
-- [ ] 16. **Rewrite `resources/views/admin/subcategories/create.blade.php`**  
-       Extends `layouts.admin`. Sections: `title` = "Create Subcategory".  
-       Variables: `$categories` (all Category records ordered by name).  
-       Form: `POST admin.subcategories.store` + `@csrf`.  
-       Fields: `category_id` select (required), `name` (required, maxlength=100), `slug` (optional, maxlength=120), `description` (textarea), `is_active` checkbox (default checked).  
-       `old()` restoration on all fields.  
-       Back link → `admin.subcategories.index`.  
-       JS: slug autofill on blur.  
-       Files: `resources/views/admin/subcategories/create.blade.php`  
-       Verify: `php artisan test --compact`
-
-- [ ] 17. **Rewrite `resources/views/admin/subcategories/edit.blade.php`**  
-       Extends `layouts.admin`. Sections: `title` = "Edit Subcategory".  
-       Variables: `$subcategory` (Subcategory model), `$categories` (all Category records).  
-       Form: `POST admin.subcategories.update($subcategory)` + `@csrf` + `@method('PUT')`.  
-       Pre-populate all fields with `old('field', $subcategory->field)`.  
-       `category_id` uses `old('category_id', $subcategory->category_id)`.  
-       JS: slug autofill on blur.  
-       Files: `resources/views/admin/subcategories/edit.blade.php`  
-       Verify: `php artisan test --compact`
-
-- [ ] 18. **Rewrite `resources/views/admin/products/index.blade.php`**  
-       Extends `layouts.admin`. Sections: `title` = "Products".  
-       Variables: `$products` (paginated, with category + subcategory), `$categories`, `$subcategories` (may be empty collection).  
-       Filter form: `GET admin.products.index` — inputs: `search` text, `category_id` select, `subcategory_id` select, `is_active` select, `sort` select; Filter submit + Clear link when any filter is active; "+ New Product" CTA on right.  
-       Table: columns: Image (thumbnail), Name, Category, Subcategory, Old Price, New Price, Status, Actions.  
-       Image: THREE-CASE logic (same as existing).  
-       Status toggle: `POST admin.products.toggleActive` + `@csrf` + `<x-badge>`.  
-       Edit/Delete: same action patterns.  
-       Empty state: `<x-empty-state>`.  
-       Pagination.  
-       JS: `@push('scripts')` — AJAX subcategory filter reload on category_id change using `route('admin.subcategories.byCategory', ['category' => '__ID__'])` URL template (identical to existing JS).  
-       Files: `resources/views/admin/products/index.blade.php`  
-       Verify: `php artisan test --compact`
-
-- [ ] 19. **Rewrite `resources/views/admin/products/create.blade.php`**  
-       Extends `layouts.admin`. Sections: `title` = "Create Product".  
-       Variables: `$categories` (all Category records ordered by name).  
-       Form: `POST admin.products.store` + `@csrf` + `enctype="multipart/form-data"`.  
-       Fields: `category_id` select, `subcategory_id` select (AJAX-populated), `name` (maxlength=150), `slug` (optional), `description` (textarea, rows=4), `image` file input (accept="image/jpeg,image/jpg,image/png,image/webp") with preview div (`id="image-preview-wrap"` hidden + `id="image-preview"`), `old_price` number, `new_price` number, `is_active` checkbox (default checked).  
-       All `old()` values and `@error` displays.  
-       Back link → `admin.products.index`.  
-       JS: `@push('scripts')` — three behaviors:  
-         1. AJAX subcategory load on category change (restore `old('category_id')` / `old('subcategory_id')` on page load)  
-         2. Slug autofill from name on blur (if slug empty)  
-         3. Image preview on file change (FileReader API)  
-       Files: `resources/views/admin/products/create.blade.php`  
-       Verify: `php artisan test --compact`
-
-- [ ] 20. **Rewrite `resources/views/admin/products/edit.blade.php`**  
-       Extends `layouts.admin`. Sections: `title` = "Edit Product".  
-       Variables: `$product` (Product model), `$categories` (all), `$subcategories` (subcategories for current category).  
-       Form: `POST admin.products.update($product)` + `@csrf` + `@method('PUT')` + `enctype="multipart/form-data"`.  
-       Fields: same as create, pre-populated with `old('field', $product->field)`.  
-       Current image display: if `$product->image` exists, show existing thumbnail using THREE-CASE logic (`str_starts_with` check) + "upload to replace" hint text.  
-       JS: same three behaviors as create; initial category/subcategory loaded from server-rendered `$subcategories` collection (no AJAX on page load — only on category change).  
-       `currentCategoryId` / `currentSubcategoryId` Blade variables interpolated into JS for AJAX re-select.  
-       Files: `resources/views/admin/products/edit.blade.php`  
-       Verify: `php artisan test --compact`
-
-- [ ] 21. **Rewrite `resources/views/storefront/home.blade.php`**  
-       Extends `layouts.storefront`. Section: `meta_title` = "BanglaPuzzle Shop — Home". Section: `content`.  
-       Variables: `$categories` (Collection with `subcategories_count`), `$products` (Collection, max 8).  
-       Preserve all existing sections in order:  
-       1. Hero banner (gradient, CTA buttons, stats row)  
-       2. USP trust strip (4-column grid)  
-       3. Categories showcase (`id="categories"`) — grid with colored icon tiles using `<x-storefront.product-card>` NOT used here (categories only)  
-       4. Promotional banner  
-       5. Latest products (`id="products"`) — grid using `<x-storefront.product-card :product="$product">` for each item  
-       6. Empty state via `<x-empty-state>` if `$products->isEmpty()`  
-       7. Newsletter strip  
-       Use `Str::plural()` for subcategory count on category tiles.  
-       Files: `resources/views/storefront/home.blade.php`  
-       Verify: `php artisan test --compact`
-
-- [ ] 22. **Rewrite `resources/views/storefront/category.blade.php`**  
-       Extends `layouts.storefront`. Section: `meta_title` = `$category->name . ' — BanglaPuzzle Shop'`. Section: `content`.  
-       Variables: `$category` (active Category), `$subcategories` (active subcategories of that category), `$products` (paginated LengthAwarePaginator, 12 per page).  
-       Use `<x-storefront.breadcrumb :items="[['label'=>'Home','url'=>route('home')], ['label'=>$category->name,'url'=>null]]">`.  
-       Hero: gradient banner with inline breadcrumb and category title + optional description.  
-       Subcategory filter pills: `route('storefront.subcategory', [$category->slug, $subcategory->slug])`.  
-       Products grid: `<x-storefront.product-card :product="$product">` in grid; `$products->links()` if `hasPages()`.  
-       Empty state: `<x-empty-state>` with back-to-home link.  
-       Files: `resources/views/storefront/category.blade.php`  
-       Verify: `php artisan test --compact`
-
-- [ ] 23. **Rewrite `resources/views/storefront/subcategory.blade.php`**  
-       Extends `layouts.storefront`. Section: `meta_title` = `$subcategory->name . ' — ' . $subcategory->category->name`.  
-       Variables: `$category`, `$subcategory` (both active), `$products` (paginated).  
-       Use `<x-storefront.breadcrumb :items="[['label'=>'Home','url'=>route('home')], ['label'=>$category->name,'url'=>route('storefront.category',$category->slug)], ['label'=>$subcategory->name,'url'=>null]]">`.  
-       Hero: gradient banner with breadcrumb, subcategory title + optional description.  
-       Products grid: `<x-storefront.product-card :product="$product">` + pagination.  
-       Empty state: `<x-empty-state>` with back-to-category link using `route('storefront.category', $subcategory->category->slug)`.  
-       Files: `resources/views/storefront/subcategory.blade.php`  
-       Verify: `php artisan test --compact`
-
-- [ ] 24. **Rewrite `resources/views/storefront/product.blade.php`**  
-       Extends `layouts.storefront`. Sections: `meta_title`, `meta_description`, `og_tags`, `content`.  
-       Variables: `$product` (active Product with eager-loaded category + subcategory), `$related` (up to 4 active related products).  
-       `@section('og_tags')`: OG meta tags using THREE-CASE image logic for `og:image`.  
-       `@section('meta_description', Str::limit($product->description, 160))`.  
-       Main content in `@section('content')`:  
-       - `$imageUrl` computed with THREE-CASE logic  
-       - Breadcrumb via `<x-storefront.breadcrumb :items="[Home, $category, $subcategory, $product->name]">` (last item has `url=null`)  
-       - Two-column grid (md:5 columns: 2 image + 3 details)  
-       - Image column: `rounded-2xl overflow-hidden shadow-lg`, aspect-square  
-       - Details column: category/subcategory `<x-badge>` chips, `<h1>` product name, price block with strikethrough + discount badge, description (`whitespace-pre-line`), decorative "Add to Cart" button, trust icons  
-       - Related products section: `<x-storefront.product-card :product="$relatedProduct">` grid  
-       Files: `resources/views/storefront/product.blade.php`  
-       Verify: `php artisan test --compact`
+- [ ] 15. Run Pint formatter and the full test suite.
+      Run `vendor/bin/pint --dirty --format agent` to fix all PHP style issues across all modified/created PHP files.
+      Then run `php artisan test --compact` — all tests (55 existing + new) pass.
+      Files: all modified `.php` files
+      Verify: `php artisan test --compact` exits with no failures.
 
 ---
 
-## Notes for the Implementer
+## File Summary
 
-1. **Tailwind v4 constraint**: No `tailwind.config.js`. Use only standard utility classes. No `[arbitrary-values]`. No `prose` class.  
-2. **`@use Illuminate\Support\Facades\Storage`**: Not needed in Blade — `Storage::disk('public')->url()` works in `@php` blocks; the `Storage` facade is always available.  
-3. **`Str::plural` / `Str::limit`**: These are Blade-available through the `Str` facade — but you must use the full `\Illuminate\Support\Str::` form in `@php` blocks, or `{{ Str::plural(...) }}` inline (the existing home.blade.php already uses `Str::plural` this way, confirming it resolves correctly in this app).  
-4. **Run `vendor/bin/pint --dirty --format agent` after each file**.  
-5. **Never run `npm run build` inline** — the plan step says to ask the user if assets are missing.  
-6. **Keep the existing partial** `storefront/partials/product-card.blade.php` in place (don't delete it) — the new component should coexist. Views that are rewritten will switch to `<x-storefront.product-card>`.  
-7. **Test run command**: `php artisan test --compact` from the workspace root.
+| Action | Path |
+|---|---|
+| Create | `database/migrations/2025_01_01_000005_create_product_slug_histories_table.php` |
+| Create | `app/Models/ProductSlugHistory.php` |
+| Modify | `app/Models/Product.php` |
+| Create | `app/Services/ProductSlugService.php` |
+| Modify | `app/Http/Requests/Admin/StoreProductRequest.php` |
+| Modify | `app/Http/Requests/Admin/UpdateProductRequest.php` |
+| Modify | `app/Http/Controllers/Admin/ProductController.php` |
+| Modify | `routes/web.php` |
+| Modify | `app/Http/Controllers/StorefrontController.php` |
+| Modify | `resources/views/admin/products/create.blade.php` |
+| Modify | `resources/views/admin/products/edit.blade.php` |
+| Modify | `resources/views/storefront/product.blade.php` |
+| Create | `tests/Feature/ProductSlugServiceTest.php` |
+| Create | `tests/Feature/ProductSlugRedirectTest.php` |

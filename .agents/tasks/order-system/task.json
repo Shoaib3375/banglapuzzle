@@ -1,0 +1,7 @@
+{
+  "task_id": "task-order-system",
+  "task_description": "Add a complete order management system: database migrations+models, checkout form wired to server, order confirmation page, customer order history, admin order listing+detail+status update, dashboard stats, profile link. Laravel 13, PHP 8.4, Tailwind v4.",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

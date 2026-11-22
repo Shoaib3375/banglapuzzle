@@ -1,0 +1,32 @@
+{
+  "id": "FEAT-003",
+  "type": "test",
+  "description": "Tests + Pint formatting + commit. Appends order tests to tests/Feature/StorefrontTest.php, creates tests/Feature/Admin/OrderAdminTest.php, updates AdminDashboardTest to assert the two new view variables, runs the full suite, runs Pint, runs npm run build, then commits. Depends on FEAT-001 and FEAT-002 being complete.",
+  "status": "pending",
+  "steps": [
+    "Append to tests/Feature/StorefrontTest.php (after the last test method, before the closing class brace). Add at top of file if not already present: 'use App\\Models\\Order;'. Add four test methods: (1) test_guest_can_place_order: create Category/Subcategory/Product via factories, POST route('orders.store') with valid payload (full_name,phone,address,city,district,payment_method='cod',items=[{product_id:$product->id,quantity:2,price:$product->new_price}]), assertStatus(200), assertJson(['success'=>true]), assertDatabaseHas('orders',['full_name'=>...']), assertDatabaseHas('order_items',['product_id'=>$product->id]). (2) test_authenticated_user_order_linked_to_account: same but actingAs a customer user, assert order->user_id == $user->id via assertDatabaseHas('orders',['user_id'=>$user->id]). (3) test_order_confirmation_page_loads: create an Order via Order::factory()->create(), GET route('orders.show',$order->order_number), assertStatus(200). (4) test_my_orders_page_requires_auth: GET route('orders.index') as guest, assertRedirect(route('user.login')).",
+    "Create tests/Feature/Admin/OrderAdminTest.php: namespace Tests\\Feature\\Admin; use RefreshDatabase; private User $admin; setUp() creates admin user. Tests: (1) test_admin_can_view_orders_list: create 2 orders via factory, actingAs admin GET route('admin.orders.index'), assertStatus(200), assertViewIs('admin.orders.index'). (2) test_admin_can_view_order_detail: create order, GET route('admin.orders.show',$order), assertStatus(200), assertSee($order->order_number). (3) test_admin_can_update_order_status: create order with status 'pending', POST route('admin.orders.updateStatus',$order) with ['status'=>'confirmed'], assertRedirect(), assertDatabaseHas('orders',['id'=>$order->id,'status'=>'confirmed']). (4) test_guest_cannot_access_admin_orders: GET route('admin.orders.index'), assertRedirect(route('admin.login')).",
+    "Update tests/Feature/Admin/AdminDashboardTest.php test_admin_can_access_dashboard: add assertViewHas('orderCount') and assertViewHas('pendingOrderCount') assertions alongside the existing ones.",
+    "Run vendor/bin/pint --dirty --format agent to fix any formatting issues across all PHP files changed in FEAT-001, FEAT-002, and FEAT-003.",
+    "Run php artisan test --compact. All tests must pass (0 failures, 0 errors). Fix any failures before continuing.",
+    "Run npm run build. Must exit 0.",
+    "Run php artisan route:list --path=orders. Verify orders.store, orders.show, orders.index, admin.orders.index, admin.orders.show, admin.orders.updateStatus all present.",
+    "Stage all new/modified files (exclude .env, vendor, node_modules, public/build, .agents/). Commit with message: feat: order system — database orders, admin order management, customer order history",
+    "Update FEAT-003 status to 'completed' in this file and set task.json status to 'completed'."
+  ],
+  "acceptance_criteria": [
+    "php artisan test --compact passes with 0 failures (≥87 tests total)",
+    "npm run build exits 0",
+    "git log --oneline -1 shows the feat: order system commit",
+    "All 4 storefront order tests pass",
+    "All 4 admin order tests pass",
+    "AdminDashboardTest now asserts orderCount and pendingOrderCount"
+  ],
+  "verification": [
+    "php artisan test --compact (0 failures)",
+    "npm run build (exit 0)",
+    "git log --oneline -1 (shows feat: order system commit)"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

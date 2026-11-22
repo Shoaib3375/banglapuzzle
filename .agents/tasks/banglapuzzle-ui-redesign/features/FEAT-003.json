@@ -1,0 +1,27 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Rewrite all 4 storefront page views (home, category, subcategory, product). Depends on FEAT-001 for x-storefront.product-card and x-storefront.breadcrumb components. Independent of FEAT-002.",
+  "status": "completed",
+  "steps": [
+    "Rewrite resources/views/storefront/home.blade.php — @extends('layouts.storefront'). @section('meta_title','BanglaPuzzle Shop — Home'). Variables: $categories (Collection with subcategories_count), $products (Collection max 8). Preserve structure in exact order: (1) Hero section: bg-gradient-to-br from-gray-900 via-gray-800 to-indigo-900, eyebrow badge, h1, p, CTA buttons (Shop Now #categories, Browse Products #products), stats row ($products->count() / $categories->count() / 100%). (2) USP trust strip: bg-white border-b, 4-column grid with emoji icons. (3) Categories showcase (id=categories): grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5, each category tile links to route('storefront.category',$category->slug), shows icon + name + subcategories_count via Str::plural(). (4) Promo banner: orange gradient rounded-3xl. (5) Latest products (id=products): grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6, each item uses <x-storefront.product-card :product=\"$product\"> instead of @include partial. (6) Empty state if $products->isEmpty(): use <x-empty-state>. (7) Newsletter strip: indigo-600 rounded-3xl, decorative form (onsubmit return false).",
+    "Rewrite resources/views/storefront/category.blade.php — @extends('layouts.storefront'). @section('meta_title',$category->name.' — BanglaPuzzle Shop'). Variables: $category, $subcategories, $products (paginated 12/page). Hero section: bg-gradient-to-br from-indigo-700 to-indigo-900, use <x-storefront.breadcrumb :items=\"[['label'=>'Home','url'=>route('home')],['label'=>$category->name,'url'=>null]]\" :dark=\"false\"> inside hero, h1 $category->name, optional description. Subcategory pills: flex flex-wrap gap-2 mb-10, each links to route('storefront.subcategory',[$category->slug,$subcategory->slug]). Products grid: <x-storefront.product-card :product=\"$product\"> + $products->links() if hasPages(). Empty state: <x-empty-state> with back link.",
+    "Rewrite resources/views/storefront/subcategory.blade.php — @extends('layouts.storefront'). @section('meta_title',$subcategory->name.' — '.$subcategory->category->name). Variables: $category, $subcategory, $products (paginated). Hero section: same gradient, <x-storefront.breadcrumb :items=\"[['label'=>'Home','url'=>route('home')],['label'=>$category->name,'url'=>route('storefront.category',$category->slug)],['label'=>$subcategory->name,'url'=>null]]\" :dark=\"false\">, h1, optional description. Products grid: <x-storefront.product-card :product=\"$product\"> + pagination. Empty state: <x-empty-state> with back link to route('storefront.category',$subcategory->category->slug).",
+    "Rewrite resources/views/storefront/product.blade.php — @extends('layouts.storefront'). Sections: meta_title=$product->name, meta_description=Str::limit($product->description,160). @section('og_tags'): og:title, og:description, og:image (THREE-CASE: str_starts_with($product->image,'http') ? $product->image : ($product->image ? Storage::disk('public')->url($product->image) : asset('images/placeholder.png'))), og:type=product. @section('content'): @php $imageUrl = THREE-CASE logic @endphp. Breadcrumb: <x-storefront.breadcrumb :items=\"[['label'=>'Home','url'=>route('home')],['label'=>$product->category->name,'url'=>route('storefront.category',$product->category->slug)],['label'=>$product->subcategory->name,'url'=>route('storefront.subcategory',[$product->category->slug,$product->subcategory->slug])],['label'=>$product->name,'url'=>null]]\" :dark=\"true\">. Two-col grid md:grid-cols-5 gap-10: col 1 (md:col-span-2) image with rounded-2xl shadow-lg aspect-square; col 2 (md:col-span-3 md:sticky md:top-24) badges via <x-badge> for category+subcategory chips, h1 name, price block (new_price bold + old_price strikethrough + discount_percentage badge if not null), description div whitespace-pre-line, 'Add to Cart' button (decorative), trust icons row. Related: @if($related->isNotEmpty()) section with <x-storefront.product-card :product=\"$relatedProduct\"> grid."
+  ],
+  "acceptance_criteria": [
+    "All 4 storefront page views are rewritten",
+    "home.blade.php uses <x-storefront.product-card> for product grid",
+    "category and subcategory use <x-storefront.breadcrumb> and <x-storefront.product-card>",
+    "product.blade.php has og_tags section with THREE-CASE image, breadcrumb component, two-column layout, related products",
+    "Existing storefront/partials/product-card.blade.php is NOT deleted",
+    "php artisan test --compact passes all 55 tests",
+    "vendor/bin/pint --dirty --format agent reports no issues"
+  ],
+  "verification": [
+    "php artisan test --compact",
+    "vendor/bin/pint --dirty --format agent"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

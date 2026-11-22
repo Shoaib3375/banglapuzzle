@@ -1,0 +1,33 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Database layer + models + routes + controllers. Creates the orders and order_items migrations, Order and OrderItem models (with constants, accessors, scopes, relationships), OrderFactory and OrderItemFactory, updates User model with orders relationship, adds all routes (public orders.store/show, customer my-orders, admin resource+updateStatus), creates storefront OrderController (store/show/myOrders) and admin OrderController (index/show/updateStatus).",
+  "status": "pending",
+  "steps": [
+    "Run: php artisan make:migration create_orders_table --no-interaction. Fill migration file in database/migrations/ with: id, user_id (nullable unsignedBigInteger, FK->users SET NULL), order_number (string unique), full_name, phone, email (nullable string), address, city, district, postcode (nullable), landmark (nullable), note (nullable text), payment_method (string default 'cod'), subtotal/delivery_charge/total (decimal 10,2; delivery_charge default 0), status (string default 'pending'), timestamps, index('user_id'), index('status'). Follow the verbose foreign() syntax from database/migrations/2025_01_01_000004_create_products_table.php.",
+    "Run: php artisan make:migration create_order_items_table --no-interaction. Fill: id, order_id (unsignedBigInteger, FK->orders cascade), product_id (nullable unsignedBigInteger, FK->products SET NULL), product_name/product_slug (string), product_image (nullable string), price/old_price (decimal 10,2; old_price default 0), quantity (unsignedInteger), subtotal (decimal 10,2), timestamps.",
+    "Run: php artisan migrate --no-interaction. Confirm both tables created.",
+    "Run: php artisan make:model Order --no-interaction. Write app/Models/Order.php: const STATUS_PENDING='pending' through STATUS_CANCELLED='cancelled', $fillable all columns, casts() with subtotal/delivery_charge/total as 'decimal:2', belongsTo(User::class) with withDefault(), hasMany(OrderItem::class), static generateOrderNumber() = 'BP-'.strtoupper(Str::random(8)), scopeForUser($query,$userId) = $query->where('user_id',$userId), getStatusLabelAttribute() returning human label, getStatusColorAttribute() returning x-badge variant string (e.g. 'emerald' for delivered, 'red' for cancelled, 'blue' for confirmed/processing/shipped, 'gray' for pending).",
+    "Run: php artisan make:model OrderItem --no-interaction. Write app/Models/OrderItem.php: $fillable all columns, casts() price/old_price/subtotal as 'decimal:2', belongsTo(Order::class), belongsTo(Product::class)->withDefault(), getDiscountPercentageAttribute() returning round((old-new)/old*100) when old_price > price > 0 else null.",
+    "Update app/Models/User.php: add 'use App\\Models\\Order;' import and public function orders(): HasMany { return $this->hasMany(Order::class); } method. Add HasMany return type import.",
+    "Run: php artisan make:factory OrderFactory --model=Order --no-interaction. Write database/factories/OrderFactory.php: definition() generates realistic BD address data, random status, payment_method cod/bkash/nagad, calculated subtotal/delivery/total. Add forUser(int $userId) state. Also manually create database/factories/OrderItemFactory.php that belongs to an Order and optionally a Product.",
+    "Update routes/web.php: add 'use App\\Http\\Controllers\\OrderController;' and 'use App\\Http\\Controllers\\Admin\\OrderController as AdminOrderController;' imports. Add public routes (no auth) before the customer middleware group: Route::post('/orders', [OrderController::class, 'store'])->name('orders.store')->middleware('throttle:10,1'); Route::get('/orders/{order:order_number}', [OrderController::class, 'show'])->name('orders.show');. Inside existing ['auth','customer'] group add: Route::get('/my-orders', [OrderController::class, 'myOrders'])->name('orders.index');. Inside existing ['auth','admin'] group add: Route::resource('orders', AdminOrderController::class)->only(['index','show']); Route::post('orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('orders.updateStatus');.",
+    "Run: php artisan make:controller OrderController --no-interaction. Write app/Http/Controllers/OrderController.php with store(), show(), myOrders() as specified. store() validates fields per spec, loads products from DB using $product->new_price (DB price, never client price), wraps in DB::transaction, returns JSON {success,order_number,redirect} on success or 422 JSON with errors key on validation failure. show() checks ownership (if order->user_id set and Auth::check() and Auth::id() !== order->user_id abort(403)). myOrders() uses Order::forUser(Auth::id())->with('items')->latest()->paginate(10).",
+    "Run: php artisan make:controller Admin/OrderController --no-interaction. Write app/Http/Controllers/Admin/OrderController.php with index(), show(), updateStatus(). index() filters by ?status= and searches ?search= across order_number and full_name, paginates 20. updateStatus() validates status in allowed list, calls $order->update(['status'=>$request->status]), redirects back with success flash.",
+    "Run vendor/bin/pint --dirty --format agent on all PHP files created/modified in this FEAT."
+  ],
+  "acceptance_criteria": [
+    "php artisan migrate runs with 0 errors and creates tables orders and order_items",
+    "php artisan route:list --path=orders shows 5 routes: POST /orders (orders.store), GET /orders/{order} (orders.show), GET /my-orders (orders.index), GET /admin/orders (admin.orders.index), GET /admin/orders/{order} (admin.orders.show), POST /admin/orders/{order}/status (admin.orders.updateStatus)",
+    "Order::generateOrderNumber() returns a string starting with 'BP-' followed by 8 uppercase alphanumeric chars",
+    "DB::transaction in store() means if OrderItem creation fails, the Order row is also rolled back",
+    "Client-submitted price is ignored; $product->new_price from DB is used for all subtotal calculations"
+  ],
+  "verification": [
+    "php artisan migrate --no-interaction (exit 0)",
+    "php artisan route:list --path=orders (5+ routes visible)",
+    "php artisan test --compact (existing 79 tests still pass; 0 failures)"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
